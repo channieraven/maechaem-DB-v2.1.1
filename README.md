@@ -40,6 +40,15 @@ firebase login
 firebase use --add
 ```
 
+## 2.2 เชื่อม CLI กับ project
+
+```bash
+firebase projects:list                   # ดู project ทั้งหมด
+firebase use --add                       # เลือก project ที่สร้าง
+# หรือ
+firebase use maechaem-db
+```
+
 ## โครงสร้างโปรเจกต์
 
 ```
