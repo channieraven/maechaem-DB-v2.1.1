@@ -46,7 +46,7 @@ firebase use --add
 firebase projects:list                   # ดู project ทั้งหมด
 firebase use --add                       # เลือก project ที่สร้าง
 # หรือ
-firebase use maechaem-db
+firebase use maechaem-db-rfd
 ```
 
 ## โครงสร้างโปรเจกต์
