@@ -25,15 +25,15 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   }
 
   if (!isApproved) {
-    return <Navigate to="/pending-approval" replace />
+    return <Navigate to="/pending" replace />
   }
 
   if (allowedRoles && (!role || !allowedRoles.includes(role))) {
     if (role === 'pending') {
-      return <Navigate to="/pending-approval" replace />
+      return <Navigate to="/pending" replace />
     }
 
-    return <Navigate to="/" replace />
+    return <Navigate to="/plots" replace />
   }
 
   return <>{children}</>

@@ -1,47 +1,45 @@
-import { useState } from 'react'
-import GrowthLogList from './components/growth/GrowthLogList'
-import PlotImageManager from './components/images/PlotImageManager'
-import PlotList from './components/plots/PlotList'
-import TreeList from './components/trees/TreeList'
-import type { Plot, Tree } from './lib/database.types'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import AdminRoute from './components/auth/AdminRoute'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import AppShell from './components/layout/AppShell'
+import AdminPage from './pages/AdminPage'
+import DashboardPage from './pages/DashboardPage'
+import LoginPage from './pages/LoginPage'
+import PendingApprovalPage from './pages/PendingApprovalPage'
+import PlotDetailPage from './pages/PlotDetailPage'
+import PlotsPage from './pages/PlotsPage'
+import RegisterPage from './pages/RegisterPage'
+import SurveyPage from './pages/SurveyPage'
+import TreeDetailPage from './pages/TreeDetailPage'
 
-function App() {
-  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null)
-  const [selectedTree, setSelectedTree] = useState<Tree | null>(null)
-
-  const handlePlotSelect = (plot: Plot) => {
-    setSelectedPlot(plot)
-    setSelectedTree(null)
-  }
-
-  const handleTreeSelect = (tree: Tree) => {
-    setSelectedTree(tree)
-  }
-
+export default function App() {
   return (
-    <main className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <section className="mx-auto max-w-7xl space-y-4">
-        <header className="rounded-xl border border-gray-200 bg-white p-4">
-          <h1 className="text-xl font-bold text-green-800">ระบบฐานข้อมูลโครงการปลูกป่าอเนกประสงค์ในพื้นที่ คทช.</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            เชื่อมข้อมูลผ่าน Firestore service layer (plots → trees → growth logs)
-          </p>
-        </header>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/pending" element={<PendingApprovalPage />} />
+      <Route path="/pending-approval" element={<Navigate to="/pending" replace />} />
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <PlotList selectedPlotId={selectedPlot?.id ?? null} onSelectPlot={handlePlotSelect} />
-          <TreeList
-            plotId={selectedPlot?.id ?? null}
-            selectedTreeId={selectedTree?.id ?? null}
-            onSelectTree={handleTreeSelect}
-          />
-          <GrowthLogList treeId={selectedTree?.id ?? null} />
-        </section>
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/" element={<Navigate to="/plots" replace />} />
+        <Route path="/plots" element={<PlotsPage />} />
+        <Route path="/plots/:plotCode" element={<PlotDetailPage />} />
+        <Route path="/trees/:treeCode" element={<TreeDetailPage />} />
+        <Route path="/survey" element={<SurveyPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
 
-        <PlotImageManager plotId={selectedPlot?.id ?? null} />
-      </section>
-    </main>
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/plots" replace />} />
+    </Routes>
   )
 }
-
-export default App
