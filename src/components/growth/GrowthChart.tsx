@@ -56,7 +56,7 @@ export default function GrowthChart({ treeId }: GrowthChartProps) {
   }, [dbhRows, growthLogs])
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
       <h3 className="mb-3 text-base font-semibold text-green-800">แนวโน้มการเติบโต</h3>
 
       {isLoading && <p className="text-sm text-gray-500">กำลังโหลดกราฟ...</p>}
@@ -72,8 +72,8 @@ export default function GrowthChart({ treeId }: GrowthChartProps) {
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="height" name="Height (m)" stroke="#15803D" strokeWidth={2} />
-              <Line type="monotone" dataKey="dbh" name="DBH (cm)" stroke="#2563EB" strokeWidth={2} />
+              <Line type="monotone" dataKey="height" name="ความสูง (ม.)" stroke="#15803D" strokeWidth={2} />
+              <Line type="monotone" dataKey="dbh" name="RCD (ซม.)" stroke="#2563EB" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
