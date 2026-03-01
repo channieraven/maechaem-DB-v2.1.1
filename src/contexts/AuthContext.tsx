@@ -105,9 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return profileSnapshot.data() as Profile
       }
 
-      const firstUserQuery = query(collection(db, 'profiles'), limit(1))
-      const firstUserSnapshot = await getDocs(firstUserQuery)
-      const isFirstUser = firstUserSnapshot.empty
+      // Check if this is the very first user in the system.
+      // The query may fail if Firestore rules don't allow listing profiles
+      // (e.g. rules only permit reading your own document). If the query is
+      // denied, other profiles must already exist — otherwise there would be
+      // nothing for the rules to protect — so we safely default to false.
+      let isFirstUser = false
+      try {
+        const firstUserQuery = query(collection(db, 'profiles'), limit(1))
+        const firstUserSnapshot = await getDocs(firstUserQuery)
+        isFirstUser = firstUserSnapshot.empty
+      } catch {
+        isFirstUser = false
+      }
 
       const role: UserRole = isFirstUser ? 'admin' : 'pending'
       const approved = isFirstUser
@@ -184,6 +194,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(authUser)
           const userProfile = await ensureProfile(authUser, payload)
           setProfile(userProfile)
+        } catch (error) {
+          console.error('Failed to load/create profile:', error)
+          // Keep user set so they stay authenticated.  Profile remains null
+          // which triggers the pending-approval redirect — but at least the
+          // auth state is consistent and a page reload will retry.
         } finally {
           setIsLoading(false)
         }
