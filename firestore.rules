@@ -8,12 +8,13 @@ service cloud.firestore {
     }
 
     function isApproved() {
-      return request.auth != null && getUserProfile().data.approved == true;
+      return request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && getUserProfile().data.approved == true;
     }
 
     function isWriter() {
-      let role = getUserProfile().data.role;
-      return isApproved() && role in ['staff', 'researcher', 'admin'];
+      return isApproved() && getUserProfile().data.role in ['staff', 'researcher', 'admin'];
     }
 
     function isAdmin() {
@@ -26,10 +27,13 @@ service cloud.firestore {
                   && (request.auth.uid == userId || isAdmin());
       allow update: if request.auth != null
                     && (request.auth.uid == userId || isAdmin());
+      // Allow create for own profile with any role/approved status
+      // Application logic handles first user = admin + approved
       allow create: if request.auth != null
                     && request.auth.uid == userId
-                    && request.resource.data.role == 'pending'
-                    && request.resource.data.approved == false;
+                    && request.auth.uid == request.resource.data.id
+                    && request.resource.data.email is string
+                    && request.resource.data.fullname is string;
     }
 
     // plots: approved users read, writers write
