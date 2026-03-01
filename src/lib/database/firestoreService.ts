@@ -18,6 +18,7 @@ import {
   ref,
   uploadBytes,
 } from 'firebase/storage'
+import { executeWriteWithOfflineFallback } from '../offlineQueue'
 import { db, storage } from '../firebase'
 import type {
   GrowthBanana,
@@ -44,6 +45,10 @@ function toEntity<T extends { id: string }>(
   } as T
 }
 
+function createOptimisticId() {
+  return `local-${crypto.randomUUID()}`
+}
+
 export async function getPlots(): Promise<Plot[]> {
   const snapshot = await getDocs(collection(db, COLLECTION_NAMES.plots))
   return snapshot.docs.map((plotDoc) => toEntity<Plot>(plotDoc))
@@ -60,12 +65,21 @@ export async function getPlotByCode(plotCode: string): Promise<Plot | null> {
 }
 
 export async function addPlot(payload: WithoutId<Plot>): Promise<Plot> {
-  const documentRef = await addDoc(
-    collection(db, COLLECTION_NAMES.plots),
-    payload as WithFieldValue<WithoutId<Plot>>
-  )
+  const writeResult = await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.plots,
+    action: 'add',
+    data: payload,
+    write: () =>
+      addDoc(
+        collection(db, COLLECTION_NAMES.plots),
+        payload as WithFieldValue<WithoutId<Plot>>
+      ),
+  })
+
+  const id = writeResult.queued ? createOptimisticId() : writeResult.result.id
+
   return {
-    id: documentRef.id,
+    id,
     ...payload,
   }
 }
@@ -74,11 +88,24 @@ export async function updatePlot(
   plotId: string,
   payload: Partial<WithoutId<Plot>>
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAMES.plots, plotId), payload)
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.plots,
+    action: 'update',
+    data: {
+      id: plotId,
+      ...payload,
+    },
+    write: () => updateDoc(doc(db, COLLECTION_NAMES.plots, plotId), payload),
+  })
 }
 
 export async function deletePlot(plotId: string): Promise<void> {
-  await deleteDoc(doc(db, COLLECTION_NAMES.plots, plotId))
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.plots,
+    action: 'delete',
+    data: { id: plotId },
+    write: () => deleteDoc(doc(db, COLLECTION_NAMES.plots, plotId)),
+  })
 }
 
 export async function getTrees(plotId: string): Promise<Tree[]> {
@@ -114,12 +141,21 @@ export async function getTreeById(treeId: string): Promise<Tree | null> {
 }
 
 export async function addTree(payload: WithoutId<Tree>): Promise<Tree> {
-  const documentRef = await addDoc(
-    collection(db, COLLECTION_NAMES.trees),
-    payload as WithFieldValue<WithoutId<Tree>>
-  )
+  const writeResult = await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.trees,
+    action: 'add',
+    data: payload,
+    write: () =>
+      addDoc(
+        collection(db, COLLECTION_NAMES.trees),
+        payload as WithFieldValue<WithoutId<Tree>>
+      ),
+  })
+
+  const id = writeResult.queued ? createOptimisticId() : writeResult.result.id
+
   return {
-    id: documentRef.id,
+    id,
     ...payload,
   }
 }
@@ -128,11 +164,24 @@ export async function updateTree(
   treeId: string,
   payload: Partial<WithoutId<Tree>>
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAMES.trees, treeId), payload)
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.trees,
+    action: 'update',
+    data: {
+      id: treeId,
+      ...payload,
+    },
+    write: () => updateDoc(doc(db, COLLECTION_NAMES.trees, treeId), payload),
+  })
 }
 
 export async function deleteTree(treeId: string): Promise<void> {
-  await deleteDoc(doc(db, COLLECTION_NAMES.trees, treeId))
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.trees,
+    action: 'delete',
+    data: { id: treeId },
+    write: () => deleteDoc(doc(db, COLLECTION_NAMES.trees, treeId)),
+  })
 }
 
 export async function getSpecies(): Promise<Species[]> {
@@ -155,12 +204,21 @@ export async function getSpeciesByCode(
 export async function addSpecies(
   payload: WithoutId<Species>
 ): Promise<Species> {
-  const documentRef = await addDoc(
-    collection(db, COLLECTION_NAMES.species),
-    payload as WithFieldValue<WithoutId<Species>>
-  )
+  const writeResult = await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.species,
+    action: 'add',
+    data: payload,
+    write: () =>
+      addDoc(
+        collection(db, COLLECTION_NAMES.species),
+        payload as WithFieldValue<WithoutId<Species>>
+      ),
+  })
+
+  const id = writeResult.queued ? createOptimisticId() : writeResult.result.id
+
   return {
-    id: documentRef.id,
+    id,
     ...payload,
   }
 }
@@ -169,11 +227,24 @@ export async function updateSpecies(
   speciesId: string,
   payload: Partial<WithoutId<Species>>
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAMES.species, speciesId), payload)
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.species,
+    action: 'update',
+    data: {
+      id: speciesId,
+      ...payload,
+    },
+    write: () => updateDoc(doc(db, COLLECTION_NAMES.species, speciesId), payload),
+  })
 }
 
 export async function deleteSpecies(speciesId: string): Promise<void> {
-  await deleteDoc(doc(db, COLLECTION_NAMES.species, speciesId))
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.species,
+    action: 'delete',
+    data: { id: speciesId },
+    write: () => deleteDoc(doc(db, COLLECTION_NAMES.species, speciesId)),
+  })
 }
 
 export async function getGrowthLogs(treeId: string): Promise<GrowthLog[]> {
@@ -188,12 +259,21 @@ export async function getGrowthLogs(treeId: string): Promise<GrowthLog[]> {
 export async function addGrowthLog(
   payload: WithoutId<GrowthLog>
 ): Promise<GrowthLog> {
-  const documentRef = await addDoc(
-    collection(db, COLLECTION_NAMES.growthLogs),
-    payload as WithFieldValue<WithoutId<GrowthLog>>
-  )
+  const writeResult = await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.growthLogs,
+    action: 'add',
+    data: payload,
+    write: () =>
+      addDoc(
+        collection(db, COLLECTION_NAMES.growthLogs),
+        payload as WithFieldValue<WithoutId<GrowthLog>>
+      ),
+  })
+
+  const id = writeResult.queued ? createOptimisticId() : writeResult.result.id
+
   return {
-    id: documentRef.id,
+    id,
     ...payload,
   }
 }
@@ -225,37 +305,60 @@ type CreateGrowthEntryInput = {
 }
 
 export async function createGrowthEntry(input: CreateGrowthEntryInput): Promise<GrowthLog> {
-  const createdLog = await addGrowthLog(input.log)
+  const childCollection =
+    input.child.plantCategory === 'bamboo'
+      ? COLLECTION_NAMES.growthBamboo
+      : input.child.plantCategory === 'banana'
+        ? COLLECTION_NAMES.growthBanana
+        : COLLECTION_NAMES.growthDbh
 
-  if (input.child.plantCategory === 'forest' || input.child.plantCategory === 'rubber' || input.child.plantCategory === 'fruit') {
-    await addDoc(collection(db, COLLECTION_NAMES.growthDbh), {
-      growth_log_id: createdLog.id,
-      dbh_cm: input.child.dbh_cm,
-    } as WithFieldValue<Omit<GrowthDbh, 'id'>>)
+  const childData =
+    input.child.plantCategory === 'bamboo'
+      ? {
+          culm_count: input.child.culm_count,
+          dbh_1_cm: input.child.dbh_1_cm,
+          dbh_2_cm: input.child.dbh_2_cm,
+          dbh_3_cm: input.child.dbh_3_cm,
+        }
+      : input.child.plantCategory === 'banana'
+        ? {
+            total_plants: input.child.total_plants,
+            plants_1yr: input.child.plants_1yr,
+            yield_bunches: input.child.yield_bunches,
+            yield_hands: input.child.yield_hands,
+            price_per_hand: input.child.price_per_hand,
+          }
+        : {
+            dbh_cm: input.child.dbh_cm,
+          }
+
+  const writeResult = await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.growthLogs,
+    action: 'add',
+    data: input.log,
+    childCollection,
+    childData,
+    write: async () => {
+      const createdLogRef = await addDoc(
+        collection(db, COLLECTION_NAMES.growthLogs),
+        input.log as WithFieldValue<WithoutId<GrowthLog>>
+      )
+
+      await addDoc(collection(db, childCollection), {
+        growth_log_id: createdLogRef.id,
+        ...childData,
+      } as WithFieldValue<Omit<GrowthDbh | GrowthBamboo | GrowthBanana, 'id'>>)
+
+      return createdLogRef
+    },
+  })
+
+  const id = writeResult.queued ? createOptimisticId() : writeResult.result.id
+
+  return {
+    id,
+    ...input.log,
   }
-
-  if (input.child.plantCategory === 'bamboo') {
-    await addDoc(collection(db, COLLECTION_NAMES.growthBamboo), {
-      growth_log_id: createdLog.id,
-      culm_count: input.child.culm_count,
-      dbh_1_cm: input.child.dbh_1_cm,
-      dbh_2_cm: input.child.dbh_2_cm,
-      dbh_3_cm: input.child.dbh_3_cm,
-    } as WithFieldValue<Omit<GrowthBamboo, 'id'>>)
-  }
-
-  if (input.child.plantCategory === 'banana') {
-    await addDoc(collection(db, COLLECTION_NAMES.growthBanana), {
-      growth_log_id: createdLog.id,
-      total_plants: input.child.total_plants,
-      plants_1yr: input.child.plants_1yr,
-      yield_bunches: input.child.yield_bunches,
-      yield_hands: input.child.yield_hands,
-      price_per_hand: input.child.price_per_hand,
-    } as WithFieldValue<Omit<GrowthBanana, 'id'>>)
-  }
-
-  return createdLog
 }
 
 export async function getGrowthDbhByTreeId(treeId: string): Promise<GrowthDbh[]> {
@@ -279,11 +382,24 @@ export async function updateGrowthLog(
   growthLogId: string,
   payload: Partial<WithoutId<GrowthLog>>
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAMES.growthLogs, growthLogId), payload)
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.growthLogs,
+    action: 'update',
+    data: {
+      id: growthLogId,
+      ...payload,
+    },
+    write: () => updateDoc(doc(db, COLLECTION_NAMES.growthLogs, growthLogId), payload),
+  })
 }
 
 export async function deleteGrowthLog(growthLogId: string): Promise<void> {
-  await deleteDoc(doc(db, COLLECTION_NAMES.growthLogs, growthLogId))
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.growthLogs,
+    action: 'delete',
+    data: { id: growthLogId },
+    write: () => deleteDoc(doc(db, COLLECTION_NAMES.growthLogs, growthLogId)),
+  })
 }
 
 export async function getPlotImages(plotId: string): Promise<PlotImage[]> {
@@ -367,8 +483,18 @@ export async function updateProfileRole(
   role: UserRole,
   approved: boolean
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION_NAMES.profiles, profileId), {
-    role,
-    approved,
+  await executeWriteWithOfflineFallback({
+    collection: COLLECTION_NAMES.profiles,
+    action: 'update',
+    data: {
+      id: profileId,
+      role,
+      approved,
+    },
+    write: () =>
+      updateDoc(doc(db, COLLECTION_NAMES.profiles, profileId), {
+        role,
+        approved,
+      }),
   })
 }
