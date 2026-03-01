@@ -17,12 +17,8 @@ import {
   type User,
 } from 'firebase/auth'
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  query,
   setDoc,
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -113,18 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const credential = await createUserWithEmailAndPassword(auth, email, password)
         const authUser = credential.user
 
-        // Check if this is the very first user. The query may be denied by
-        // Firestore rules — if so, other profiles already exist, so default false.
-        let isFirstUser = false
-        try {
-          const snap = await getDocs(query(collection(db, 'profiles'), limit(1)))
-          isFirstUser = snap.empty
-        } catch {
-          isFirstUser = false
-        }
-
-        const role: UserRole = isFirstUser ? 'admin' : 'pending'
-        const newProfile = buildProfile(authUser, role, isFirstUser, {
+        // All new users are self-approved with 'pending' role.
+        // An admin can later assign a write-capable role (staff, researcher, admin).
+        const newProfile = buildProfile(authUser, 'pending', true, {
           fullname,
           position,
           organization: org,
