@@ -21,15 +21,13 @@ service cloud.firestore {
       return isApproved() && getUserProfile().data.role == 'admin';
     }
 
-    // profiles: owner/admin get, any auth user list (for first-user detection), owner/admin update, owner create
+    // profiles: owner/admin get, owner/admin update, owner create
     match /profiles/{userId} {
       allow get: if request.auth != null
                  && (request.auth.uid == userId || isAdmin());
-      allow list: if request.auth != null;
       allow update: if request.auth != null
                     && (request.auth.uid == userId || isAdmin());
-      // Allow create for own profile with any role/approved status
-      // Application logic handles first user = admin + approved
+      // Allow create for own profile; approved:true is set by application logic
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.auth.uid == request.resource.data.id
