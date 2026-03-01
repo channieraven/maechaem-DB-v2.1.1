@@ -8,20 +8,18 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   type User,
 } from 'firebase/auth'
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  query,
   setDoc,
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -42,6 +40,7 @@ type AuthContextValue = {
   canWrite: boolean
   isAdmin: boolean
   login: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   register: (
     email: string,
     password: string,
@@ -56,6 +55,11 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const WRITER_ROLES: UserRole[] = ['staff', 'researcher', 'admin']
+const googleProvider = new GoogleAuthProvider()
+
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+})
 
 function getDefaultFullname(user: User): string {
   if (user.displayName && user.displayName.trim().length > 0) {
@@ -92,32 +96,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const ensureProfile = useCallback(
-    async (authUser: User, payload?: Partial<RegisterPayload>): Promise<Profile> => {
+  const mergeProfilePayload = useCallback(
+    async (authUser: User, payload?: Partial<RegisterPayload>) => {
+      if (!payload) {
+        return
+      }
+
       const profileRef = doc(db, 'profiles', authUser.uid)
+      await setDoc(
+        profileRef,
+        {
+          email: authUser.email ?? '',
+          fullname: payload.fullname?.trim() || getDefaultFullname(authUser),
+          position: payload.position?.trim() || '-',
+          organization: payload.organization?.trim() || '-',
+        },
+        { merge: true }
+      )
+    },
+    []
+  )
+
+  const waitForProfileDocument = useCallback(async (userId: string, attempts = 12, delayMs = 500) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const profileRef = doc(db, 'profiles', userId)
       const profileSnapshot = await getDoc(profileRef)
 
       if (profileSnapshot.exists()) {
         return profileSnapshot.data() as Profile
       }
 
-      const firstUserQuery = query(collection(db, 'profiles'), limit(1))
-      const firstUserSnapshot = await getDocs(firstUserQuery)
-      const isFirstUser = firstUserSnapshot.empty
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delayMs)
+      })
+    }
 
-      const role: UserRole = isFirstUser ? 'admin' : 'pending'
-      const approved = isFirstUser
-      const newProfile = buildProfile(authUser, role, approved, payload)
+    return null
+  }, [])
 
-      await setDoc(profileRef, newProfile)
+  const ensureProfile = useCallback(
+    async (authUser: User, payload?: Partial<RegisterPayload>): Promise<Profile> => {
+      const profileRef = doc(db, 'profiles', authUser.uid)
+      const profileSnapshot = await getDoc(profileRef)
 
-      return newProfile
+      if (profileSnapshot.exists()) {
+        await mergeProfilePayload(authUser, payload)
+        const updatedProfileSnapshot = await getDoc(profileRef)
+        return updatedProfileSnapshot.data() as Profile
+      }
+
+      const syncedProfile = await waitForProfileDocument(authUser.uid)
+      if (syncedProfile) {
+        await mergeProfilePayload(authUser, payload)
+        const updatedProfileSnapshot = await getDoc(profileRef)
+        return updatedProfileSnapshot.data() as Profile
+      }
+
+      const fallbackProfile = buildProfile(authUser, 'pending', false, payload)
+      await setDoc(profileRef, fallbackProfile)
+
+      return fallbackProfile
     },
-    []
+    [mergeProfilePayload, waitForProfileDocument]
   )
 
   const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
+  }, [])
+
+  const signInWithGoogle = useCallback(async () => {
+    await signInWithPopup(auth, googleProvider)
   }, [])
 
   const register = useCallback(
@@ -188,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canWrite,
       isAdmin,
       login,
+      signInWithGoogle,
       register,
       logout,
       resetPassword,
@@ -201,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canWrite,
       isAdmin,
       login,
+      signInWithGoogle,
       register,
       logout,
       resetPassword,

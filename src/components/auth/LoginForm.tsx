@@ -6,11 +6,12 @@ type LoginFormProps = {
 }
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
-  const { login, isLoading } = useAuth()
+  const { login, signInWithGoogle, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -24,6 +25,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถเข้าสู่ระบบได้')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setGoogleSubmitting(true)
+
+    try {
+      await signInWithGoogle()
+      onSuccess?.()
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้')
+    } finally {
+      setGoogleSubmitting(false)
     }
   }
 
@@ -63,10 +78,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       <button
         type="submit"
-        disabled={submitting || isLoading}
+        disabled={submitting || googleSubmitting || isLoading}
         className="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
       >
         {submitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignIn}
+        disabled={submitting || googleSubmitting || isLoading}
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+      >
+        {googleSubmitting ? 'กำลังเข้าสู่ระบบด้วย Google...' : 'เข้าสู่ระบบด้วย Google'}
       </button>
     </form>
   )

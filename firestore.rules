@@ -27,13 +27,15 @@ service cloud.firestore {
                   && (request.auth.uid == userId || isAdmin());
       allow update: if request.auth != null
                     && (request.auth.uid == userId || isAdmin());
-      // Allow create for own profile with any role/approved status
-      // Application logic handles first user = admin + approved
+      // Allow client fallback create only as pending + unapproved.
+      // Admin promotion is handled by backend/admin tools.
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.auth.uid == request.resource.data.id
                     && request.resource.data.email is string
-                    && request.resource.data.fullname is string;
+                    && request.resource.data.fullname is string
+                    && request.resource.data.role == 'pending'
+                    && request.resource.data.approved == false;
     }
 
     // plots: approved users read, writers write

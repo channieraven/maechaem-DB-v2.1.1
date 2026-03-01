@@ -6,7 +6,7 @@ type RegisterFormProps = {
 }
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
-  const { register, isLoading } = useAuth()
+  const { register, signInWithGoogle, isLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullname, setFullname] = useState('')
@@ -14,6 +14,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [organization, setOrganization] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -27,6 +28,20 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถสมัครสมาชิกได้')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleGoogleSignUp = async () => {
+    setError(null)
+    setGoogleSubmitting(true)
+
+    try {
+      await signInWithGoogle()
+      onSuccess?.()
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถสมัครสมาชิกด้วย Google ได้')
+    } finally {
+      setGoogleSubmitting(false)
     }
   }
 
@@ -106,11 +121,24 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <button
         type="submit"
-        disabled={submitting || isLoading}
+        disabled={submitting || googleSubmitting || isLoading}
         className="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
       >
         {submitting ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
       </button>
+
+      <button
+        type="button"
+        onClick={handleGoogleSignUp}
+        disabled={submitting || googleSubmitting || isLoading}
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+      >
+        {googleSubmitting ? 'กำลังสมัครสมาชิกด้วย Google...' : 'สมัครสมาชิกด้วย Google'}
+      </button>
+
+      <p className="text-center text-xs text-gray-500">
+        การสมัครด้วย Google จะสร้างโปรไฟล์ผู้ใช้ให้อัตโนมัติ แต่ยังต้องรอผู้ดูแลระบบอนุมัติก่อนเข้าใช้งาน
+      </p>
     </form>
   )
 }

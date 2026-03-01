@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "maechaem-db-rfd"
+  },
+  "targets": {},
+  "etags": {
+    "maechaem-db-rfd": {
+      "extensionInstances": {
+        "firestore-user-document": "6cb9a3252fc8cbc7786a6b7612e62970c03bfcdedb2a55bc4aa4a06f384c3e7d"
+      }
+    }
   }
 }
