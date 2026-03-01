@@ -21,21 +21,18 @@ service cloud.firestore {
       return isApproved() && getUserProfile().data.role == 'admin';
     }
 
-    // profiles: owner read/update, admin read all
+    // profiles: owner/admin get, owner/admin update, owner create
     match /profiles/{userId} {
-      allow read: if request.auth != null
-                  && (request.auth.uid == userId || isAdmin());
+      allow get: if request.auth != null
+                 && (request.auth.uid == userId || isAdmin());
       allow update: if request.auth != null
                     && (request.auth.uid == userId || isAdmin());
-      // Allow client fallback create only as pending + unapproved.
-      // Admin promotion is handled by backend/admin tools.
+      // Allow create for own profile; approved:true is set by application logic
       allow create: if request.auth != null
                     && request.auth.uid == userId
                     && request.auth.uid == request.resource.data.id
                     && request.resource.data.email is string
-                    && request.resource.data.fullname is string
-                    && request.resource.data.role == 'pending'
-                    && request.resource.data.approved == false;
+            && request.resource.data.fullname is string;
     }
 
     // plots: approved users read, writers write

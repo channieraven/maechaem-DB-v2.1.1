@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -95,70 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-
-  const mergeProfilePayload = useCallback(
-    async (authUser: User, payload?: Partial<RegisterPayload>) => {
-      if (!payload) {
-        return
-      }
-
-      const profileRef = doc(db, 'profiles', authUser.uid)
-      await setDoc(
-        profileRef,
-        {
-          email: authUser.email ?? '',
-          fullname: payload.fullname?.trim() || getDefaultFullname(authUser),
-          position: payload.position?.trim() || '-',
-          organization: payload.organization?.trim() || '-',
-        },
-        { merge: true }
-      )
-    },
-    []
-  )
-
-  const waitForProfileDocument = useCallback(async (userId: string, attempts = 12, delayMs = 500) => {
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const profileRef = doc(db, 'profiles', userId)
-      const profileSnapshot = await getDoc(profileRef)
-
-      if (profileSnapshot.exists()) {
-        return profileSnapshot.data() as Profile
-      }
-
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, delayMs)
-      })
-    }
-
-    return null
-  }, [])
-
-  const ensureProfile = useCallback(
-    async (authUser: User, payload?: Partial<RegisterPayload>): Promise<Profile> => {
-      const profileRef = doc(db, 'profiles', authUser.uid)
-      const profileSnapshot = await getDoc(profileRef)
-
-      if (profileSnapshot.exists()) {
-        await mergeProfilePayload(authUser, payload)
-        const updatedProfileSnapshot = await getDoc(profileRef)
-        return updatedProfileSnapshot.data() as Profile
-      }
-
-      const syncedProfile = await waitForProfileDocument(authUser.uid)
-      if (syncedProfile) {
-        await mergeProfilePayload(authUser, payload)
-        const updatedProfileSnapshot = await getDoc(profileRef)
-        return updatedProfileSnapshot.data() as Profile
-      }
-
-      const fallbackProfile = buildProfile(authUser, 'pending', false, payload)
-      await setDoc(profileRef, fallbackProfile)
-
-      return fallbackProfile
-    },
-    [mergeProfilePayload, waitForProfileDocument]
-  )
+  // True while register() is running. Prevents onAuthStateChanged from
+  // racing to create the profile at the same time.
+  const registeringRef = useRef(false)
 
   const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
@@ -176,19 +116,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       position: string,
       org: string
     ) => {
-      const credential = await createUserWithEmailAndPassword(auth, email, password)
-      const authUser = credential.user
+      registeringRef.current = true
+      try {
+        const credential = await createUserWithEmailAndPassword(auth, email, password)
+        const authUser = credential.user
 
-      const createdProfile = await ensureProfile(authUser, {
-        fullname,
-        position,
-        organization: org,
-      })
+        // All new users are self-approved with 'pending' role.
+        // An admin can later assign a write-capable role (staff, researcher, admin).
+        const newProfile = buildProfile(authUser, 'pending', true, {
+          fullname,
+          position,
+          organization: org,
+        })
 
-      setProfile(createdProfile)
-      setUser(authUser)
+        // Any setDoc failure will propagate as an error visible in RegisterForm.
+        await setDoc(doc(db, 'profiles', authUser.uid), newProfile)
+
+        setUser(authUser)
+        setProfile(newProfile)
+      } finally {
+        registeringRef.current = false
+        setIsLoading(false)
+      }
     },
-    [ensureProfile]
+    []
   )
 
   const logout = useCallback(async () => {
@@ -200,26 +151,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      setIsLoading(true)
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (authUser) => {
+        // register() handles its own state updates — skip to avoid a race where
+        // onAuthStateChanged fires before setDoc completes and creates a profile
+        // with wrong data (or fails trying).
+        if (registeringRef.current) return
 
-      try {
-        if (!authUser) {
-          setUser(null)
-          setProfile(null)
-          return
+        setIsLoading(true)
+
+        try {
+          if (!authUser) {
+            setUser(null)
+            setProfile(null)
+            return
+          }
+
+          setUser(authUser)
+
+          const profileRef = doc(db, 'profiles', authUser.uid)
+          const snapshot = await getDoc(profileRef)
+
+          if (snapshot.exists()) {
+            setProfile(snapshot.data() as Profile)
+          } else {
+            // Fallback for users who exist in Firebase Auth but have no Firestore
+            // profile (e.g. registered before this logic was added). A simple
+            // setDoc is enough — no transaction needed since onAuthStateChanged
+            // only fires for the current authenticated user.
+            const fallback = buildProfile(authUser, 'pending', false)
+            await setDoc(profileRef, fallback)
+            setProfile(fallback)
+          }
+        } catch (error) {
+          console.error('Failed to load/create profile:', error)
+          // Keep user set so they stay authenticated. Profile remains null
+          // which triggers the pending-approval redirect. A page reload retries.
+        } finally {
+          setIsLoading(false)
         }
-
-        setUser(authUser)
-        const userProfile = await ensureProfile(authUser)
-        setProfile(userProfile)
-      } finally {
+      },
+      (error) => {
+        // Firebase SDK calls this when the persisted token is invalid or expired
+        // (e.g. accounts:lookup returns 400). Sign out to clear the bad token
+        // from local storage so the SDK stops retrying it.
+        console.error('Auth state error:', error)
+        signOut(auth).catch(() => {})
+        setUser(null)
+        setProfile(null)
         setIsLoading(false)
       }
-    })
+    )
 
     return () => unsubscribe()
-  }, [ensureProfile])
+  }, [])
 
   const role = profile?.role ?? null
   const isApproved = Boolean(profile?.approved)

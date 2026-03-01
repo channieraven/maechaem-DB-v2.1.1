@@ -25,7 +25,12 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       await register(email.trim(), password, fullname.trim(), position.trim(), organization.trim())
       onSuccess?.()
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถสมัครสมาชิกได้')
+      const code = (submitError as { code?: string }).code
+      if (code === 'auth/email-already-in-use') {
+        setError('อีเมลนี้ถูกลงทะเบียนไปแล้ว กรุณาใช้อีเมลอื่นหรือเข้าสู่ระบบด้วยบัญชีเดิม')
+      } else {
+        setError(submitError instanceof Error ? submitError.message : 'ไม่สามารถสมัครสมาชิกได้')
+      }
     } finally {
       setSubmitting(false)
     }
