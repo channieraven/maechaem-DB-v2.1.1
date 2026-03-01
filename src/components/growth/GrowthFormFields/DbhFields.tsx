@@ -7,7 +7,8 @@ export default function DbhFields({ dbhCm, onChange }: DbhFieldsProps) {
   return (
     <div>
       <label htmlFor="dbhCm" className="mb-1 block text-xs font-medium text-gray-600">
-        DBH (ซม.)
+        RCD (ซม.)
+        <span className="ml-1 font-normal text-gray-400">— ความโตที่ระดับคอราก</span>
       </label>
       <input
         id="dbhCm"

@@ -99,8 +99,8 @@ export default function BatchEntry({ trees, onSaved }: BatchEntryProps) {
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
-      <h3 className="mb-2 text-base font-semibold text-green-800">Batch Entry</h3>
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
+      <h3 className="mb-2 text-base font-semibold text-green-800">บันทึกข้อมูลแบบชุด</h3>
       <p className="mb-3 text-xs text-gray-500">กรอก Tree ID หลายรายการ (คั่นด้วย comma) เพื่อบันทึกค่าเดียวกันพร้อมกัน</p>
 
       <form className="space-y-3" onSubmit={handleSubmit}>
@@ -133,9 +133,9 @@ export default function BatchEntry({ trees, onSaved }: BatchEntryProps) {
             onChange={(event) => setStatus(event.target.value as TreeStatus)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
-            <option value="alive">alive</option>
-            <option value="dead">dead</option>
-            <option value="missing">missing</option>
+            <option value="alive">มีชีวิต</option>
+            <option value="dead">ตาย</option>
+            <option value="missing">ไม่พบต้น</option>
           </select>
         </div>
 

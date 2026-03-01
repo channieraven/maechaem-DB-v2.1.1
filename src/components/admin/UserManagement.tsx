@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Profile, UserRole } from '../../lib/database.types'
 import { getProfiles, updateProfileRole } from '../../lib/database/firestoreService'
+import { getRoleLabel } from '../../utils/formatters'
 
 const ROLE_OPTIONS: UserRole[] = ['pending', 'staff', 'researcher', 'executive', 'external', 'admin']
 
@@ -35,9 +36,9 @@ export default function UserManagement() {
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-green-800">User Management</h3>
+        <h3 className="text-base font-semibold text-green-800">จัดการผู้ใช้งาน</h3>
         <button
           type="button"
           onClick={() => void loadProfiles()}
@@ -53,7 +54,7 @@ export default function UserManagement() {
       {!loading && !error && (
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-sm font-semibold text-gray-700">Pending Approval</p>
+            <p className="mb-2 text-sm font-semibold text-gray-700">รออนุมัติ</p>
             <ul className="space-y-2">
               {pendingUsers.map((profile) => (
                 <li key={profile.id} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -65,7 +66,7 @@ export default function UserManagement() {
                       onClick={() => void handleUpdate(profile.id, 'staff', true)}
                       className="rounded-md bg-green-700 px-3 py-1 text-xs font-medium text-white hover:bg-green-800"
                     >
-                      อนุมัติเป็น Staff
+                      อนุมัติเป็นเจ้าหน้าที่
                     </button>
                     <button
                       type="button"
@@ -83,7 +84,7 @@ export default function UserManagement() {
 
           <div className="overflow-x-auto">
             <p className="mb-2 text-sm font-semibold text-gray-700">จัดการบทบาทผู้ใช้</p>
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="fluent-table min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
                 <tr>
                   <th className="px-3 py-2">ชื่อ</th>
@@ -105,7 +106,7 @@ export default function UserManagement() {
                       >
                         {ROLE_OPTIONS.map((role) => (
                           <option key={role} value={role}>
-                            {role}
+                            {getRoleLabel(role)}
                           </option>
                         ))}
                       </select>
@@ -117,7 +118,7 @@ export default function UserManagement() {
                           checked={profile.approved}
                           onChange={(event) => void handleUpdate(profile.id, profile.role, event.target.checked)}
                         />
-                        approved
+                        อนุมัติแล้ว
                       </label>
                     </td>
                   </tr>

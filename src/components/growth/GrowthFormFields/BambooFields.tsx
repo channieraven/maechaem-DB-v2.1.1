@@ -15,7 +15,7 @@ export default function BambooFields({ values, onChange }: BambooFieldsProps) {
     <div className="grid gap-3 md:grid-cols-2">
       <div>
         <label htmlFor="culmCount" className="mb-1 block text-xs font-medium text-gray-600">
-          จำนวนลำ (culm_count)
+          จำนวนลำ
         </label>
         <input
           id="culmCount"
@@ -28,7 +28,7 @@ export default function BambooFields({ values, onChange }: BambooFieldsProps) {
       </div>
       <div>
         <label htmlFor="dbh1" className="mb-1 block text-xs font-medium text-gray-600">
-          DBH 1 (ซม.)
+          RCD 1 (ซม.)
         </label>
         <input
           id="dbh1"
@@ -42,7 +42,7 @@ export default function BambooFields({ values, onChange }: BambooFieldsProps) {
       </div>
       <div>
         <label htmlFor="dbh2" className="mb-1 block text-xs font-medium text-gray-600">
-          DBH 2 (ซม.)
+          RCD 2 (ซม.)
         </label>
         <input
           id="dbh2"
@@ -56,7 +56,7 @@ export default function BambooFields({ values, onChange }: BambooFieldsProps) {
       </div>
       <div>
         <label htmlFor="dbh3" className="mb-1 block text-xs font-medium text-gray-600">
-          DBH 3 (ซม.)
+          RCD 3 (ซม.)
         </label>
         <input
           id="dbh3"
