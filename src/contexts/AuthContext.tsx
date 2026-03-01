@@ -23,7 +23,7 @@ import {
   getDocs,
   limit,
   query,
-  setDoc,
+  runTransaction,
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import type { Profile, UserRole } from '../lib/database.types'
@@ -113,9 +113,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const approved = isFirstUser
       const newProfile = buildProfile(authUser, role, approved, payload)
 
-      await setDoc(profileRef, newProfile)
-
-      return newProfile
+      // Use a transaction to prevent concurrent onAuthStateChanged calls (e.g.
+      // React Strict Mode double-mount) from overwriting an already-created
+      // profile.  If another call already wrote the document between our
+      // getDoc check above and this transaction, we return the existing
+      // profile instead of overwriting it with potentially wrong data.
+      return runTransaction(db, async (transaction) => {
+        const existingSnapshot = await transaction.get(profileRef)
+        if (existingSnapshot.exists()) {
+          return existingSnapshot.data() as Profile
+        }
+        transaction.set(profileRef, newProfile)
+        return newProfile
+      })
     },
     []
   )
