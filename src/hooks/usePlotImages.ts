@@ -4,28 +4,28 @@ import { getPlotImages } from '../lib/database/firestoreService'
 
 export function usePlotImages(plotId: string | null) {
   const [images, setImages] = useState<PlotImage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   const refresh = useCallback(async () => {
     if (!plotId) {
       setImages([])
-      setIsLoading(false)
+      setLoading(false)
       setError(null)
       return
     }
 
-    setIsLoading(true)
+    setLoading(true)
     setError(null)
 
     try {
       const data = await getPlotImages(plotId)
       setImages(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'ไม่สามารถโหลดรูปภาพแปลงได้'
-      setError(message)
+      const normalizedError = err instanceof Error ? err : new Error('ไม่สามารถโหลดรูปภาพแปลงได้')
+      setError(normalizedError)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }, [plotId])
 
@@ -35,7 +35,8 @@ export function usePlotImages(plotId: string | null) {
 
   return {
     images,
-    isLoading,
+    loading,
+    isLoading: loading,
     error,
     refresh,
   }

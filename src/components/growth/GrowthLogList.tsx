@@ -123,7 +123,7 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
 
       {submitError && <p className="mb-3 text-sm text-red-600">{submitError}</p>}
       {treeId && isLoading && <p className="text-sm text-gray-500">กำลังโหลดข้อมูลการเจริญเติบโต...</p>}
-      {treeId && error && <p className="text-sm text-red-600">{error}</p>}
+      {treeId && error && <p className="text-sm text-red-600">{error.message}</p>}
 
       {treeId && !isLoading && !error && (
         <ul className="space-y-2">

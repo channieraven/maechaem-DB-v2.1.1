@@ -4,28 +4,28 @@ import { getTrees } from '../lib/database/firestoreService'
 
 export function useTrees(plotId: string | null) {
   const [trees, setTrees] = useState<Tree[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   const refresh = useCallback(async () => {
     if (!plotId) {
       setTrees([])
-      setIsLoading(false)
+      setLoading(false)
       setError(null)
       return
     }
 
-    setIsLoading(true)
+    setLoading(true)
     setError(null)
 
     try {
       const data = await getTrees(plotId)
       setTrees(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'ไม่สามารถโหลดข้อมูลต้นไม้ได้'
-      setError(message)
+      const normalizedError = err instanceof Error ? err : new Error('ไม่สามารถโหลดข้อมูลต้นไม้ได้')
+      setError(normalizedError)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }, [plotId])
 
@@ -35,7 +35,8 @@ export function useTrees(plotId: string | null) {
 
   return {
     trees,
-    isLoading,
+    loading,
+    isLoading: loading,
     error,
     refresh,
   }
