@@ -153,29 +153,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      setIsLoading(true)
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (authUser) => {
+        setIsLoading(true)
 
-      try {
-        if (!authUser) {
-          setUser(null)
-          setProfile(null)
-          return
+        try {
+          if (!authUser) {
+            setUser(null)
+            setProfile(null)
+            return
+          }
+
+          // Consume the registration payload exactly once. Any subsequent fires
+          // of onAuthStateChanged (e.g. token refresh) will pass undefined,
+          // causing ensureProfile to simply return the already-created profile.
+          const payload = pendingPayloadRef.current ?? undefined
+          pendingPayloadRef.current = null
+
+          setUser(authUser)
+          const userProfile = await ensureProfile(authUser, payload)
+          setProfile(userProfile)
+        } finally {
+          setIsLoading(false)
         }
-
-        // Consume the registration payload exactly once. Any subsequent fires
-        // of onAuthStateChanged (e.g. token refresh) will pass undefined,
-        // causing ensureProfile to simply return the already-created profile.
-        const payload = pendingPayloadRef.current ?? undefined
-        pendingPayloadRef.current = null
-
-        setUser(authUser)
-        const userProfile = await ensureProfile(authUser, payload)
-        setProfile(userProfile)
-      } finally {
+      },
+      (error) => {
+        // Firebase SDK calls this when the persisted token is invalid or expired
+        // (e.g. accounts:lookup returns 400). Sign out to clear the bad token
+        // from local storage so the SDK stops retrying it.
+        console.error('Auth state error:', error)
+        signOut(auth).catch(() => {})
+        setUser(null)
+        setProfile(null)
         setIsLoading(false)
       }
-    })
+    )
 
     return () => unsubscribe()
   }, [ensureProfile])
