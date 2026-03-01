@@ -2,37 +2,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // โครงการปลูกป่า
-    match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        && request.resource.data.keys().hasAll(['name', 'area', 'createdAt']);
-      allow delete: if request.auth != null
-        && request.auth.token.admin == true;
-
-      // พื้นที่ย่อย
-      match /plots/{plotId} {
-        allow read: if request.auth != null;
-        allow create, update: if request.auth != null
-          && request.resource.data.keys().hasAll(['name', 'boundary', 'createdAt']);
-        allow delete: if request.auth != null
-          && request.auth.token.admin == true;
-      }
+    // Helper: Get current user's profile
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid));
     }
 
-    // ต้นไม้
+    function isApproved() {
+      return request.auth != null && getUserProfile().data.approved == true;
+    }
+
+    function isWriter() {
+      let role = getUserProfile().data.role;
+      return isApproved() && role in ['staff', 'researcher', 'admin'];
+    }
+
+    function isAdmin() {
+      return isApproved() && getUserProfile().data.role == 'admin';
+    }
+
+    // profiles: owner read/update, admin read all
+    match /profiles/{userId} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == userId || isAdmin());
+      allow update: if request.auth != null
+                    && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.role == 'pending'
+                    && request.resource.data.approved == false;
+    }
+
+    // plots: approved users read, writers write
+    match /plots/{plotId} {
+      allow read: if isApproved();
+      allow write: if isWriter();
+    }
+
+    // trees: approved users read, writers write
     match /trees/{treeId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        && request.resource.data.keys().hasAll(['species', 'projectId', 'plantedAt']);
-      allow delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow read: if isApproved();
+      allow write: if isWriter();
     }
 
-    // ผู้ใช้งาน
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // growth_logs: approved users read, writers write
+    match /growth_logs/{logId} {
+      allow read: if isApproved();
+      allow write: if isWriter();
+    }
+
+    // plot_images: approved users read, writers write/delete
+    match /plot_images/{imageId} {
+      allow read: if isApproved();
+      allow write: if isWriter();
+      allow delete: if isWriter();
+    }
+
+    // species: authenticated users read, admin write
+    match /species/{speciesId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }
