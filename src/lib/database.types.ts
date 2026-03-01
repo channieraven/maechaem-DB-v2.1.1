@@ -19,6 +19,7 @@ export type TreeStatus = 'alive' | 'dead' | 'missing';
 export type UserRole = 'pending' | 'staff' | 'researcher' | 'executive' | 'external' | 'admin';
 export type ImageType = 'plan_pre_1' | 'plan_pre_2' | 'plan_post_1' | 'gallery';
 export type GalleryCategory = 'tree' | 'soil' | 'atmosphere' | 'other';
+export type ImportJobStatus = 'queued' | 'dry_run_completed' | 'validated' | 'committed' | 'failed';
 
 // Collection interfaces
 export interface Profile {
@@ -155,4 +156,36 @@ export interface Notification {
   message: string;
   read: boolean;
   created_at: TimestampValue;
+}
+
+export interface ImportJobIssue {
+  code: string;
+  message: string;
+  severity: 'error' | 'warning';
+  row_index?: number;
+  field?: string;
+}
+
+export interface ImportJobSummary {
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  plots_resolved: number;
+  trees_resolved: number;
+  species_resolved: number;
+}
+
+export interface ImportJob {
+  id: string;
+  source_file_name: string;
+  source_plot_code: string;
+  mode: 'dry_run' | 'commit';
+  parser_version: string;
+  status: ImportJobStatus;
+  summary: ImportJobSummary;
+  issues: ImportJobIssue[];
+  created_by: string;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
+  committed_at?: TimestampValue;
 }

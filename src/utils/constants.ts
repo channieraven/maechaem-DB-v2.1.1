@@ -9,6 +9,7 @@ export const COLLECTION_NAMES = {
   growthBanana: 'growth_banana',
   plotImages: 'plot_images',
   plotSpacing: 'plot_spacing',
+  importJobs: 'import_jobs',
   comments: 'comments',
   notifications: 'notifications',
 } as const;

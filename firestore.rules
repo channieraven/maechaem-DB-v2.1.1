@@ -78,6 +78,11 @@ service cloud.firestore {
       allow write: if canWrite();
     }
 
+    match /import_jobs/{doc} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /comments/{doc} {
       allow read: if isApproved();
       allow write: if canWrite();
