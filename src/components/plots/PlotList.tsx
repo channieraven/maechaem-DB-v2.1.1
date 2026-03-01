@@ -23,7 +23,7 @@ export default function PlotList({ selectedPlotId, onSelectPlot }: PlotListProps
       </div>
 
       {isLoading && <p className="text-sm text-gray-500">กำลังโหลดข้อมูลแปลง...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error.message}</p>}
 
       {!isLoading && !error && (
         <ul className="space-y-2">

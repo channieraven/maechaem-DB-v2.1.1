@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Plot } from '../lib/database.types'
-import { getPlots } from '../lib/database/firestoreService'
+import type { Species } from '../lib/database.types'
+import { getSpecies } from '../lib/database/firestoreService'
 
-export function usePlots() {
-  const [plots, setPlots] = useState<Plot[]>([])
+export function useSpecies() {
+  const [species, setSpecies] = useState<Species[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -12,10 +12,10 @@ export function usePlots() {
     setError(null)
 
     try {
-      const data = await getPlots()
-      setPlots(data)
+      const data = await getSpecies()
+      setSpecies(data)
     } catch (err) {
-      const normalizedError = err instanceof Error ? err : new Error('ไม่สามารถโหลดข้อมูลแปลงปลูกได้')
+      const normalizedError = err instanceof Error ? err : new Error('ไม่สามารถโหลดข้อมูลชนิดพืชได้')
       setError(normalizedError)
     } finally {
       setLoading(false)
@@ -27,7 +27,7 @@ export function usePlots() {
   }, [refresh])
 
   return {
-    plots,
+    species,
     loading,
     isLoading: loading,
     error,

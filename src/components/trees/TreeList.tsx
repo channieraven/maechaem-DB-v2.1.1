@@ -26,7 +26,7 @@ export default function TreeList({ plotId, selectedTreeId, onSelectTree }: TreeL
 
       {!plotId && <p className="text-sm text-gray-500">กรุณาเลือกแปลงก่อน</p>}
       {plotId && isLoading && <p className="text-sm text-gray-500">กำลังโหลดข้อมูลต้นไม้...</p>}
-      {plotId && error && <p className="text-sm text-red-600">{error}</p>}
+      {plotId && error && <p className="text-sm text-red-600">{error.message}</p>}
 
       {plotId && !isLoading && !error && (
         <ul className="space-y-2">

@@ -137,7 +137,7 @@ export default function PlotImageManager({ plotId }: PlotImageManagerProps) {
 
       {submitError && <p className="mb-3 text-sm text-red-600">{submitError}</p>}
       {plotId && isLoading && <p className="text-sm text-gray-500">กำลังโหลดรูปภาพ...</p>}
-      {plotId && error && <p className="text-sm text-red-600">{error}</p>}
+      {plotId && error && <p className="text-sm text-red-600">{error.message}</p>}
 
       {plotId && !isLoading && !error && (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

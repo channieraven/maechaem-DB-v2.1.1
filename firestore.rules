@@ -2,68 +2,92 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Get current user's profile
-    function getUserProfile() {
-      return get(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getProfile() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data;
     }
 
     function isApproved() {
-      return request.auth != null
+      return isSignedIn()
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
-        && getUserProfile().data.approved == true;
-    }
-
-    function isWriter() {
-      return isApproved() && getUserProfile().data.role in ['staff', 'researcher', 'admin'];
+        && getProfile().approved == true;
     }
 
     function isAdmin() {
-      return isApproved() && getUserProfile().data.role == 'admin';
+      return isApproved() && getProfile().role == 'admin';
     }
 
-    // profiles: owner/admin get, owner/admin update, owner create
+    function canWrite() {
+      return isApproved() && getProfile().role in ['staff', 'researcher', 'admin'];
+    }
+
+    // Profiles
     match /profiles/{userId} {
-      allow get: if request.auth != null
-                 && (request.auth.uid == userId || isAdmin());
-      allow update: if request.auth != null
-                    && (request.auth.uid == userId || isAdmin());
-      // Allow create for own profile; approved:true is set by application logic
-      allow create: if request.auth != null
-                    && request.auth.uid == userId
-                    && request.auth.uid == request.resource.data.id
-                    && request.resource.data.email is string
-            && request.resource.data.fullname is string;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && userId == request.auth.uid;
+      allow update: if isSignedIn() && (userId == request.auth.uid || isAdmin());
     }
 
-    // plots: approved users read, writers write
-    match /plots/{plotId} {
+    // Read-only for approved users
+    match /plots/{doc} {
       allow read: if isApproved();
-      allow write: if isWriter();
+      allow write: if canWrite();
     }
 
-    // trees: approved users read, writers write
-    match /trees/{treeId} {
+    match /species/{doc} {
       allow read: if isApproved();
-      allow write: if isWriter();
-    }
-
-    // growth_logs: approved users read, writers write
-    match /growth_logs/{logId} {
-      allow read: if isApproved();
-      allow write: if isWriter();
-    }
-
-    // plot_images: approved users read, writers write/delete
-    match /plot_images/{imageId} {
-      allow read: if isApproved();
-      allow write: if isWriter();
-      allow delete: if isWriter();
-    }
-
-    // species: authenticated users read, admin write
-    match /species/{speciesId} {
-      allow read: if request.auth != null;
       allow write: if isAdmin();
+    }
+
+    match /trees/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /growth_logs/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /growth_dbh/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /growth_bamboo/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /growth_banana/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /plot_images/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /plot_spacing/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /comments/{doc} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /notifications/{doc} {
+      allow read: if isSignedIn()
+                  && (resource.data.userId == request.auth.uid
+                      || resource.data.user_id == request.auth.uid);
+      allow write: if canWrite();
     }
   }
 }
