@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useOffline } from '../../contexts/OfflineContext'
 
 type OfflineIndicatorProps = {
   isSyncing?: boolean
@@ -7,24 +8,15 @@ type OfflineIndicatorProps = {
 }
 
 export default function OfflineIndicator({
-  isSyncing = false,
-  queueSize = 0,
+  isSyncing,
+  queueSize,
   className = '',
 }: OfflineIndicatorProps) {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine)
+  const offline = useOffline()
 
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  const resolvedIsSyncing = isSyncing ?? offline.isSyncing
+  const resolvedQueueSize = queueSize ?? offline.pendingCount
+  const isOnline = offline.isOnline
 
   const status = useMemo(() => {
     if (!isOnline) {
@@ -35,10 +27,12 @@ export default function OfflineIndicator({
       }
     }
 
-    if (isSyncing || queueSize > 0) {
+    if (resolvedIsSyncing || resolvedQueueSize > 0) {
       return {
         dot: '🟡',
-        label: queueSize > 0 ? `รอซิงก์ ${queueSize} รายการ` : 'กำลังซิงก์ข้อมูล',
+        label: resolvedIsSyncing
+          ? 'กำลังซิงก์ข้อมูล'
+          : `รอซิงก์ ${resolvedQueueSize} รายการ`,
         style: 'border-amber-100 bg-amber-50 text-amber-700',
       }
     }
@@ -48,7 +42,7 @@ export default function OfflineIndicator({
       label: 'ออนไลน์',
       style: 'border-emerald-100 bg-emerald-50 text-emerald-700',
     }
-  }, [isOnline, isSyncing, queueSize])
+  }, [isOnline, resolvedIsSyncing, resolvedQueueSize])
 
   return (
     <div className={`border-b px-4 py-2 text-xs md:px-6 ${status.style} ${className}`.trim()} role="status" aria-live="polite">

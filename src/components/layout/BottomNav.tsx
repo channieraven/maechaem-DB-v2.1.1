@@ -42,7 +42,7 @@ const defaultItems: BottomNavItem[] = [
 
 export default function BottomNav({ items = defaultItems }: BottomNavProps) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white md:hidden" aria-label="เมนูด้านล่าง">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-green-800/20 bg-green-900 md:hidden" aria-label="เมนูด้านล่าง">
       <ul className="grid grid-cols-4">
         {items.map((item) => (
           <li key={item.id}>
@@ -51,7 +51,7 @@ export default function BottomNav({ items = defaultItems }: BottomNavProps) {
               className={({ isActive }) =>
                 [
                   'flex flex-col items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition',
-                  isActive ? 'text-green-700' : 'text-gray-500 hover:text-gray-700',
+                  isActive ? 'text-white' : 'text-green-100/75 hover:text-white/90',
                 ].join(' ')
               }
             >
