@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useGrowthLogs } from '../../hooks/useGrowthLogs'
 import type { TreeStatus } from '../../lib/database.types'
 import { addGrowthLog } from '../../lib/database/firestoreService'
+import { getStatusLabel } from '../../utils/formatters'
 
 type GrowthLogListProps = {
   treeId: string | null
@@ -55,9 +56,9 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-green-800">Growth Logs</h2>
+        <h2 className="text-base font-semibold text-green-800">บันทึกการเจริญเติบโต</h2>
         <button
           type="button"
           onClick={() => void refresh()}
@@ -89,9 +90,9 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
             onChange={(event) => setStatus(event.target.value as TreeStatus)}
             className="rounded-md border border-gray-300 px-2 py-2 text-sm"
           >
-            <option value="alive">alive</option>
-            <option value="dead">dead</option>
-            <option value="missing">missing</option>
+            <option value="alive">มีชีวิต</option>
+            <option value="dead">ตาย</option>
+            <option value="missing">ไม่พบต้น</option>
           </select>
 
           <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -100,7 +101,7 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
               checked={flowering}
               onChange={(event) => setFlowering(event.target.checked)}
             />
-            มีดอก (flowering)
+            มีดอก
           </label>
 
           <input
@@ -116,7 +117,7 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
             disabled={!canSubmit}
             className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white enabled:hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {isSubmitting ? 'กำลังบันทึก...' : 'เพิ่ม Growth Log'}
+            {isSubmitting ? 'กำลังบันทึก...' : 'เพิ่มบันทึกการสำรวจ'}
           </button>
         </div>
       )}
@@ -130,7 +131,7 @@ export default function GrowthLogList({ treeId }: GrowthLogListProps) {
           {growthLogs.map((log) => (
             <li key={log.id} className="rounded-md border border-gray-200 px-3 py-2 text-sm">
               <p className="font-medium">วันที่สำรวจ: {String(log.survey_date)}</p>
-              <p className="text-xs text-gray-600">ความสูง: {log.height_m} ม. | สถานะ: {log.status}</p>
+              <p className="text-xs text-gray-600">ความสูง: {log.height_m} ม. | สถานะ: {getStatusLabel(log.status)}</p>
             </li>
           ))}
           {growthLogs.length === 0 && <li className="text-sm text-gray-500">ยังไม่มีบันทึกการสำรวจ</li>}

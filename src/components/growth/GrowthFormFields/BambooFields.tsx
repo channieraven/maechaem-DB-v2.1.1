@@ -15,7 +15,7 @@ export default function BambooFields({ values, onChange }: BambooFieldsProps) {
     <div className="grid gap-3 md:grid-cols-2">
       <div>
         <label htmlFor="culmCount" className="mb-1 block text-xs font-medium text-gray-600">
-          จำนวนลำ (culm_count)
+          จำนวนลำ
         </label>
         <input
           id="culmCount"

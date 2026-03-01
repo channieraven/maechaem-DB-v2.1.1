@@ -93,12 +93,13 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <div>
         <label htmlFor="register-email" className="mb-1 block text-sm font-medium text-gray-700">
-          Email
+          อีเมล
         </label>
         <input
           id="register-email"
           type="email"
           autoComplete="email"
+          placeholder="example@email.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none"
@@ -108,13 +109,15 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <div>
         <label htmlFor="register-password" className="mb-1 block text-sm font-medium text-gray-700">
-          Password
+          รหัสผ่าน
+          <span className="ml-1 text-xs font-normal text-gray-500">(อย่างน้อย 6 ตัวอักษร)</span>
         </label>
         <input
           id="register-password"
           type="password"
           autoComplete="new-password"
           minLength={6}
+          placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none"

@@ -9,7 +9,7 @@ export default function PlotSelector({ selectedPlotId, onSelectPlot }: PlotSelec
   const { plots, isLoading, error } = usePlots()
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
       <h3 className="mb-2 text-base font-semibold text-green-800">1) เลือกแปลง</h3>
 
       {isLoading && <p className="text-sm text-gray-500">กำลังโหลดแปลง...</p>}

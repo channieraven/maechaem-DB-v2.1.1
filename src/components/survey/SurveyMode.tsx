@@ -66,8 +66,8 @@ export default function SurveyMode() {
 
   return (
     <section className="space-y-4">
-      <header className="rounded-xl border border-gray-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-green-800">Survey Mode</h2>
+      <header className="card rounded-xl border border-gray-200 bg-white p-4">
+        <h2 className="text-lg font-semibold text-green-800">โหมดสำรวจข้อมูล</h2>
         <p className="text-sm text-gray-600">เลือกแปลง → เลือกต้น → กรอกข้อมูล → บันทึก → ต้นถัดไป</p>
       </header>
 

@@ -54,9 +54,9 @@ export default function CommonFields({ values, onChange }: CommonFieldsProps) {
           onChange={(event) => onChange('status', event.target.value as TreeStatus)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
-          <option value="alive">alive</option>
-          <option value="dead">dead</option>
-          <option value="missing">missing</option>
+          <option value="alive">มีชีวิต</option>
+          <option value="dead">ตาย</option>
+          <option value="missing">ไม่พบต้น</option>
         </select>
       </div>
 
@@ -66,7 +66,7 @@ export default function CommonFields({ values, onChange }: CommonFieldsProps) {
           checked={values.flowering}
           onChange={(event) => onChange('flowering', event.target.checked)}
         />
-        มีดอก (flowering)
+        มีดอก
       </label>
 
       <div className="md:col-span-2">

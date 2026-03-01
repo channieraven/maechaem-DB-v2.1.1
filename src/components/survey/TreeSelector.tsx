@@ -9,7 +9,7 @@ type TreeSelectorProps = {
 
 export default function TreeSelector({ trees, selectedTreeId, surveyedTreeIds, onSelectTree }: TreeSelectorProps) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4">
       <h3 className="mb-2 text-base font-semibold text-green-800">2) เลือกต้นไม้</h3>
 
       {trees.length === 0 && <p className="text-sm text-gray-500">ยังไม่มีต้นไม้ในแปลงที่เลือก</p>}

@@ -46,12 +46,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-gray-700">
-          Email
+          อีเมล
         </label>
         <input
           id="login-email"
           type="email"
           autoComplete="email"
+          placeholder="example@email.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none"
@@ -61,12 +62,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       <div>
         <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-gray-700">
-          Password
+          รหัสผ่าน
         </label>
         <input
           id="login-password"
           type="password"
           autoComplete="current-password"
+          placeholder="รหัสผ่านของคุณ"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none"

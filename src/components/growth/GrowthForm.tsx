@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import type { PlantCategory, Tree, TreeStatus } from '../../lib/database.types'
 import { createGrowthEntry } from '../../lib/database/firestoreService'
+import { getCategoryLabel } from '../../utils/formatters'
 import BananaFields from './GrowthFormFields/BananaFields'
 import BambooFields from './GrowthFormFields/BambooFields'
 import CommonFields from './GrowthFormFields/CommonFields'
@@ -48,10 +49,14 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [savedOk, setSavedOk] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const speciesById = useMemo(() => new Map(species.map((item) => [item.id, item])), [species])
   const treeSpecies = speciesById.get(tree.species_id)
   const plantCategory: PlantCategory = treeSpecies?.plant_category ?? 'forest'
+
+  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }, [])
 
   const canSubmit = Boolean(user?.uid && !isSubmitting)
 
@@ -108,6 +113,10 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
       setBamboo({ culmCount: 0, dbh1Cm: 0, dbh2Cm: 0, dbh3Cm: 0 })
       setBanana({ totalPlants: 0, plants1yr: 0, yieldBunches: 0, yieldHands: 0, pricePerHand: 0 })
 
+      setSavedOk(true)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setSavedOk(false), 3000)
+
       await onSaved?.()
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'ไม่สามารถบันทึกข้อมูลการเจริญเติบโตได้')
@@ -117,9 +126,9 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-5">
+    <section className="card rounded-xl border border-gray-200 bg-white p-4 md:p-5">
       <h3 className="mb-1 text-base font-semibold text-green-800">บันทึกการเจริญเติบโต</h3>
-      <p className="mb-4 text-xs text-gray-500">ประเภทพืช: {plantCategory}</p>
+      <p className="mb-4 text-xs text-gray-500">ประเภทพืช: {getCategoryLabel(plantCategory)}</p>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <CommonFields
@@ -160,6 +169,11 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
           />
         )}
 
+        {savedOk && (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+            ✓ บันทึกข้อมูลเรียบร้อยแล้ว
+          </p>
+        )}
         {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
         <button
