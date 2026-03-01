@@ -20,16 +20,18 @@ service cloud.firestore {
       return isApproved() && getUserProfile().data.role == 'admin';
     }
 
-    // profiles: owner read/update, admin read all
+    // profiles: owner/admin get, any auth user list (for first-user detection), owner/admin update, owner create
     match /profiles/{userId} {
-      allow read: if request.auth != null
-                  && (request.auth.uid == userId || isAdmin());
+      allow get: if request.auth != null
+                 && (request.auth.uid == userId || isAdmin());
+      allow list: if request.auth != null;
       allow update: if request.auth != null
                     && (request.auth.uid == userId || isAdmin());
       allow create: if request.auth != null
                     && request.auth.uid == userId
-                    && request.resource.data.role == 'pending'
-                    && request.resource.data.approved == false;
+                    && request.auth.uid == request.resource.data.id
+                    && request.resource.data.email is string
+                    && request.resource.data.fullname is string;
     }
 
     // plots: approved users read, writers write
