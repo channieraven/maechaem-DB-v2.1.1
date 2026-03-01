@@ -1,32 +1,105 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 import {setGlobalOptions} from "firebase-functions";
-import {onRequest} from "firebase-functions/https";
+import {onDocumentCreated, onDocumentDeleted} from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
+import {initializeApp} from "firebase-admin/app";
+import {getFirestore} from "firebase-admin/firestore";
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
-
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
+initializeApp();
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+const db = getFirestore();
+
+type ExtensionUserDocument = {
+	uid?: string;
+	email?: string;
+	displayName?: string;
+	creationTime?: string;
+};
+
+type ProfileRole = "pending" | "admin";
+
+function getDefaultFullname(userId: string, userData?: ExtensionUserDocument): string {
+	const displayName = userData?.displayName?.trim();
+	if (displayName) {
+		return displayName;
+	}
+
+	const email = userData?.email?.trim();
+	if (email) {
+		return email.split("@")[0];
+	}
+
+	return userId;
+}
+
+function buildProfileDocument(
+	userId: string,
+	userData: ExtensionUserDocument | undefined,
+	role: ProfileRole,
+	approved: boolean,
+): Record<string, unknown> {
+	return {
+		id: userId,
+		email: userData?.email ?? "",
+		fullname: getDefaultFullname(userId, userData),
+		position: "-",
+		organization: "-",
+		role,
+		approved,
+		created_at: userData?.creationTime ?? new Date().toISOString(),
+	};
+}
+
+export const syncProfileFromExtensionUser = onDocumentCreated(
+	"users/{userId}",
+	async (event) => {
+		const userId = event.params.userId;
+		const userData = event.data?.data() as ExtensionUserDocument | undefined;
+		const profileRef = db.collection("profiles").doc(userId);
+
+		await db.runTransaction(async (transaction) => {
+			const profileSnapshot = await transaction.get(profileRef);
+			if (profileSnapshot.exists) {
+				return;
+			}
+
+			const firstProfileQuery = db.collection("profiles").limit(1);
+			const firstProfileSnapshot = await transaction.get(firstProfileQuery);
+			const isFirstUser = firstProfileSnapshot.empty;
+			const role: ProfileRole = isFirstUser ? "admin" : "pending";
+			const approved = isFirstUser;
+
+			transaction.set(
+				profileRef,
+				buildProfileDocument(userId, userData, role, approved),
+			);
+		});
+
+		logger.info("Synced profile from extension user document", {
+			userId,
+			sourceCollection: "users",
+			targetCollection: "profiles",
+		});
+	},
+);
+
+export const deleteProfileForRemovedExtensionUser = onDocumentDeleted(
+	"users/{userId}",
+	async (event) => {
+		const userId = event.params.userId;
+		const profileRef = db.collection("profiles").doc(userId);
+		const profileSnapshot = await profileRef.get();
+
+		if (!profileSnapshot.exists) {
+			return;
+		}
+
+		await profileRef.delete();
+
+		logger.info("Deleted profile after extension user removal", {
+			userId,
+			sourceCollection: "users",
+			targetCollection: "profiles",
+		});
+	},
+);

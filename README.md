@@ -82,3 +82,16 @@ firebase deploy --only hosting
 # Deploy ทั้งหมด
 firebase deploy
 ```
+
+## Firebase Extension: Firestore User Document
+
+โปรเจกต์นี้ผูกกับ extension `rowy/firestore-user-document@0.0.6` โดยตั้งค่าให้สร้างเอกสารผู้ใช้ใน collection `users` อัตโนมัติเมื่อมีผู้ใช้ใหม่ใน Firebase Auth
+
+- ไฟล์ตั้งค่า extension: [extensions/firestore-user-document.env](extensions/firestore-user-document.env)
+- ฟังก์ชัน backend จะ sync จาก `users/{uid}` ไป `profiles/{uid}` เพื่อให้ระบบ role/approval เดิมใช้งานได้ต่อเนื่อง
+
+เมื่อ deploy แนะนำให้รวม `functions` และ `extensions` ด้วย เช่น:
+
+```bash
+firebase deploy --only functions,extensions,firestore,hosting
+```

@@ -30,5 +30,8 @@
       "enabled": true,
       "port": 4000
     }
+  },
+  "extensions": {
+    "firestore-user-document": "rowy/firestore-user-document@0.0.6"
   }
 }

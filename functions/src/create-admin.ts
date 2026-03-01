@@ -51,7 +51,7 @@ async function createAdminProfile(email: string): Promise<void> {
     const profileRef = db.collection('profiles').doc(userRecord.uid);
     const profileSnapshot = await profileRef.get();
     
-    if (profileSnapshot.exists()) {
+    if (profileSnapshot.exists) {
       console.log('⚠️  มี profile อยู่แล้ว กำลังอัปเดตเป็น admin...');
       
       await profileRef.update({
@@ -118,7 +118,7 @@ async function listUsers(): Promise<void> {
       const profileRef = db.collection('profiles').doc(userRecord.uid);
       const profileSnapshot = await profileRef.get();
       
-      if (profileSnapshot.exists()) {
+      if (profileSnapshot.exists) {
         const profile = profileSnapshot.data();
         console.log(`✅ Profile: role=${profile?.role}, approved=${profile?.approved}`);
       } else {

@@ -9,10 +9,12 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   type User,
 } from 'firebase/auth'
@@ -39,6 +41,7 @@ type AuthContextValue = {
   canWrite: boolean
   isAdmin: boolean
   login: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   register: (
     email: string,
     password: string,
@@ -53,6 +56,11 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const WRITER_ROLES: UserRole[] = ['staff', 'researcher', 'admin']
+const googleProvider = new GoogleAuthProvider()
+
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+})
 
 function getDefaultFullname(user: User): string {
   if (user.displayName && user.displayName.trim().length > 0) {
@@ -94,6 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
+  }, [])
+
+  const signInWithGoogle = useCallback(async () => {
+    await signInWithPopup(auth, googleProvider)
   }, [])
 
   const register = useCallback(
@@ -210,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canWrite,
       isAdmin,
       login,
+      signInWithGoogle,
       register,
       logout,
       resetPassword,
@@ -223,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canWrite,
       isAdmin,
       login,
+      signInWithGoogle,
       register,
       logout,
       resetPassword,

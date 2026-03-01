@@ -32,7 +32,7 @@ service cloud.firestore {
                     && request.auth.uid == userId
                     && request.auth.uid == request.resource.data.id
                     && request.resource.data.email is string
-                    && request.resource.data.fullname is string;
+            && request.resource.data.fullname is string;
     }
 
     // plots: approved users read, writers write
