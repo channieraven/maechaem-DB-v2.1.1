@@ -1,0 +1,48 @@
+type User @table {
+  username: String!
+  email: String!
+  createdAt: Timestamp!
+  displayName: String
+  photoUrl: String
+  role: String
+}
+
+type Plot @table {
+  creator: User
+  plotId: String!
+  latitude: Float!
+  longitude: Float!
+  createdAt: Timestamp!
+  plotName: String
+  description: String
+  notes: String
+}
+
+type Tree @table {
+  plot: Plot
+  treeId: String!
+  species: String!
+  diameter: Float!
+  height: Float!
+  createdAt: Timestamp!
+  notes: String
+  healthStatus: String
+}
+
+type Measurement @table {
+  tree: Tree
+  measuredAt: Timestamp!
+  diameter: Float!
+  height: Float!
+  healthObservation: String
+}
+
+type MediaFile @table {
+  plot: Plot
+  tree: Tree
+  fileUrl: String!
+  createdAt: Timestamp!
+  fileType: String!
+  caption: String
+  associatedId: UUID
+}
