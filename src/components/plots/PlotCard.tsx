@@ -8,15 +8,24 @@ type PlotCardProps = {
 }
 
 function calculateSurvivalRate(plot: Plot): number {
-  if (plot.tree_count <= 0) {
+  const treeCount = Number(plot.tree_count ?? 0)
+  const aliveCount = Number(plot.alive_count ?? 0)
+
+  if (!Number.isFinite(treeCount) || treeCount <= 0) {
     return 0
   }
 
-  return (plot.alive_count / plot.tree_count) * 100
+  if (!Number.isFinite(aliveCount) || aliveCount < 0) {
+    return 0
+  }
+
+  return (aliveCount / treeCount) * 100
 }
 
 export default function PlotCard({ plot, isSelected = false, onSelect }: PlotCardProps) {
   const survivalRate = calculateSurvivalRate(plot)
+  const treeCount = Number(plot.tree_count ?? 0)
+  const displayTreeCount = Number.isFinite(treeCount) ? treeCount.toLocaleString('th-TH') : '-'
 
   return (
     <article
@@ -43,7 +52,7 @@ export default function PlotCard({ plot, isSelected = false, onSelect }: PlotCar
 
         <div className="rounded-lg bg-gray-50 px-3 py-2">
           <dt className="text-xs text-gray-500">จำนวนต้นไม้</dt>
-          <dd className="font-medium text-gray-800">{plot.tree_count.toLocaleString('th-TH')}</dd>
+          <dd className="font-medium text-gray-800">{displayTreeCount}</dd>
         </div>
 
         <div className="col-span-2 rounded-lg bg-gray-50 px-3 py-2">
