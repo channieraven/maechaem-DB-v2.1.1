@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -91,6 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // Holds the registration payload so onAuthStateChanged can pick it up once,
+  // preventing the race condition between register() and onAuthStateChanged().
+  const pendingPayloadRef = useRef<Partial<RegisterPayload> | null>(null)
 
   const ensureProfile = useCallback(
     async (authUser: User, payload?: Partial<RegisterPayload>): Promise<Profile> => {
@@ -128,19 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       position: string,
       org: string
     ) => {
-      const credential = await createUserWithEmailAndPassword(auth, email, password)
-      const authUser = credential.user
-
-      const createdProfile = await ensureProfile(authUser, {
-        fullname,
-        position,
-        organization: org,
-      })
-
-      setProfile(createdProfile)
-      setUser(authUser)
+      // Store payload before creating the user so that onAuthStateChanged
+      // can consume it and create the profile exactly once, eliminating the
+      // race condition where both register() and onAuthStateChanged() would
+      // call ensureProfile() concurrently and potentially assign 'pending' role
+      // to the first user.
+      pendingPayloadRef.current = { fullname, position, organization: org }
+      await createUserWithEmailAndPassword(auth, email, password)
+      // Profile creation is handled by the onAuthStateChanged callback below.
     },
-    [ensureProfile]
+    []
   )
 
   const logout = useCallback(async () => {
@@ -162,8 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        // Consume the registration payload exactly once. Any subsequent fires
+        // of onAuthStateChanged (e.g. token refresh) will pass undefined,
+        // causing ensureProfile to simply return the already-created profile.
+        const payload = pendingPayloadRef.current ?? undefined
+        pendingPayloadRef.current = null
+
         setUser(authUser)
-        const userProfile = await ensureProfile(authUser)
+        const userProfile = await ensureProfile(authUser, payload)
         setProfile(userProfile)
       } finally {
         setIsLoading(false)
