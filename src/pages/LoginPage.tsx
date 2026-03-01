@@ -7,8 +7,16 @@ import { useAuth } from '../contexts/AuthContext'
 type AuthTab = 'login' | 'register'
 
 export default function LoginPage() {
-  const { user, isApproved } = useAuth()
+  const { user, isApproved, isLoading } = useAuth()
   const [tab, setTab] = useState<AuthTab>('login')
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-gray-600">กำลังตรวจสอบสิทธิ์...</p>
+      </main>
+    )
+  }
 
   if (user && isApproved) {
     return <Navigate to="/" replace />

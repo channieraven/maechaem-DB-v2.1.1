@@ -23,7 +23,7 @@ import {
   getDocs,
   limit,
   query,
-  runTransaction,
+  setDoc,
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import type { Profile, UserRole } from '../lib/database.types'
@@ -92,53 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  // Holds the registration payload so onAuthStateChanged can pick it up once,
-  // preventing the race condition between register() and onAuthStateChanged().
-  const pendingPayloadRef = useRef<Partial<RegisterPayload> | null>(null)
-
-  const ensureProfile = useCallback(
-    async (authUser: User, payload?: Partial<RegisterPayload>): Promise<Profile> => {
-      const profileRef = doc(db, 'profiles', authUser.uid)
-      const profileSnapshot = await getDoc(profileRef)
-
-      if (profileSnapshot.exists()) {
-        return profileSnapshot.data() as Profile
-      }
-
-      // Check if this is the very first user in the system.
-      // The query may fail if Firestore rules don't allow listing profiles
-      // (e.g. rules only permit reading your own document). If the query is
-      // denied, other profiles must already exist — otherwise there would be
-      // nothing for the rules to protect — so we safely default to false.
-      let isFirstUser = false
-      try {
-        const firstUserQuery = query(collection(db, 'profiles'), limit(1))
-        const firstUserSnapshot = await getDocs(firstUserQuery)
-        isFirstUser = firstUserSnapshot.empty
-      } catch {
-        isFirstUser = false
-      }
-
-      const role: UserRole = isFirstUser ? 'admin' : 'pending'
-      const approved = isFirstUser
-      const newProfile = buildProfile(authUser, role, approved, payload)
-
-      // Use a transaction to prevent concurrent onAuthStateChanged calls (e.g.
-      // React Strict Mode double-mount) from overwriting an already-created
-      // profile.  If another call already wrote the document between our
-      // getDoc check above and this transaction, we return the existing
-      // profile instead of overwriting it with potentially wrong data.
-      return runTransaction(db, async (transaction) => {
-        const existingSnapshot = await transaction.get(profileRef)
-        if (existingSnapshot.exists()) {
-          return existingSnapshot.data() as Profile
-        }
-        transaction.set(profileRef, newProfile)
-        return newProfile
-      })
-    },
-    []
-  )
+  // True while register() is running — tells onAuthStateChanged to stand by
+  // so the two don't race each other.
+  const registeringRef = useRef(false)
 
   const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
@@ -152,14 +108,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       position: string,
       org: string
     ) => {
-      // Store payload before creating the user so that onAuthStateChanged
-      // can consume it and create the profile exactly once, eliminating the
-      // race condition where both register() and onAuthStateChanged() would
-      // call ensureProfile() concurrently and potentially assign 'pending' role
-      // to the first user.
-      pendingPayloadRef.current = { fullname, position, organization: org }
-      await createUserWithEmailAndPassword(auth, email, password)
-      // Profile creation is handled by the onAuthStateChanged callback below.
+      registeringRef.current = true
+      setIsLoading(true)
+
+      try {
+        const { user: newUser } = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        )
+
+        const profileRef = doc(db, 'profiles', newUser.uid)
+
+        // Check if this is the very first user in the system.
+        // The query may fail if Firestore rules don't allow listing profiles —
+        // if denied, other profiles must exist, so default to not-first-user.
+        let isFirstUser = false
+        try {
+          const firstUserQuery = query(collection(db, 'profiles'), limit(1))
+          const firstUserSnapshot = await getDocs(firstUserQuery)
+          isFirstUser = firstUserSnapshot.empty
+        } catch {
+          isFirstUser = false
+        }
+
+        const role: UserRole = isFirstUser ? 'admin' : 'pending'
+        const approved = isFirstUser
+        const newProfile = buildProfile(newUser, role, approved, {
+          fullname,
+          position,
+          organization: org,
+        })
+
+        await setDoc(profileRef, newProfile)
+
+        setUser(newUser)
+        setProfile(newProfile)
+      } finally {
+        registeringRef.current = false
+        setIsLoading(false)
+      }
     },
     []
   )
@@ -176,6 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (authUser) => {
+        // While register() is running it manages all state itself — skip here
+        // to avoid racing it.
+        if (registeringRef.current) return
+
         setIsLoading(true)
 
         try {
@@ -185,20 +177,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return
           }
 
-          // Consume the registration payload exactly once. Any subsequent fires
-          // of onAuthStateChanged (e.g. token refresh) will pass undefined,
-          // causing ensureProfile to simply return the already-created profile.
-          const payload = pendingPayloadRef.current ?? undefined
-          pendingPayloadRef.current = null
-
           setUser(authUser)
-          const userProfile = await ensureProfile(authUser, payload)
-          setProfile(userProfile)
+
+          const profileRef = doc(db, 'profiles', authUser.uid)
+          const snap = await getDoc(profileRef)
+
+          if (snap.exists()) {
+            setProfile(snap.data() as Profile)
+          } else {
+            // Profile missing (e.g. created before this fix, or edge-case
+            // where register() failed after creating the auth user).
+            // Create a basic pending profile so the user at least shows up in
+            // the admin approval queue.
+            const fallback = buildProfile(authUser, 'pending', false)
+            await setDoc(profileRef, fallback)
+            setProfile(fallback)
+          }
         } catch (error) {
           console.error('Failed to load/create profile:', error)
-          // Keep user set so they stay authenticated.  Profile remains null
-          // which triggers the pending-approval redirect — but at least the
-          // auth state is consistent and a page reload will retry.
         } finally {
           setIsLoading(false)
         }
@@ -216,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     return () => unsubscribe()
-  }, [ensureProfile])
+  }, [])
 
   const role = profile?.role ?? null
   const isApproved = Boolean(profile?.approved)
