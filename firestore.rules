@@ -8,12 +8,13 @@ service cloud.firestore {
     }
 
     function isApproved() {
-      return request.auth != null && getUserProfile().data.approved == true;
+      return request.auth != null
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && getUserProfile().data.approved == true;
     }
 
     function isWriter() {
-      let role = getUserProfile().data.role;
-      return isApproved() && role in ['staff', 'researcher', 'admin'];
+      return isApproved() && getUserProfile().data.role in ['staff', 'researcher', 'admin'];
     }
 
     function isAdmin() {
