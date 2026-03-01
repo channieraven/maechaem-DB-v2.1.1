@@ -9,7 +9,7 @@ export default function PendingApprovalPage() {
   }
 
   if (isApproved) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/plots" replace />
   }
 
   return (

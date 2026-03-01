@@ -19,11 +19,11 @@ export default function LoginPage() {
   }
 
   if (user && isApproved) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/plots" replace />
   }
 
   if (user && !isApproved) {
-    return <Navigate to="/pending-approval" replace />
+    return <Navigate to="/pending" replace />
   }
 
   return (
