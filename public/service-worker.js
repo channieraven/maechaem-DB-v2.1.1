@@ -1,5 +1,5 @@
-const CACHE_NAME = 'maechaem-db-shell-v1'
-const APP_SHELL = ['/', '/index.html', '/manifest.json', '/icons/icon-192.svg', '/icons/icon-512.svg']
+const CACHE_NAME = 'maechaem-db-shell-v2'
+const APP_SHELL = ['/index.html', '/manifest.json', '/icons/icon-192.svg', '/icons/icon-512.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -28,7 +28,27 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  const isStaticAsset = ['document', 'script', 'style', 'image', 'font'].includes(event.request.destination)
+  const isNavigationRequest = event.request.mode === 'navigate'
+
+  if (isNavigationRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const responseCopy = networkResponse.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put('/index.html', responseCopy)
+          })
+          return networkResponse
+        })
+        .catch(async () => {
+          const cachedShell = await caches.match('/index.html')
+          return cachedShell || Response.error()
+        })
+    )
+    return
+  }
+
+  const isStaticAsset = ['script', 'style', 'image', 'font'].includes(event.request.destination)
 
   if (!isStaticAsset) {
     return

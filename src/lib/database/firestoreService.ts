@@ -7,6 +7,7 @@ import {
   getDocs,
   limit,
   query,
+  setDoc,
   updateDoc,
   where,
   type QueryDocumentSnapshot,
@@ -16,16 +17,20 @@ import {
   deleteObject,
   getDownloadURL,
   ref,
+  uploadBytesResumable,
   uploadBytes,
 } from 'firebase/storage'
 import { executeWriteWithOfflineFallback } from '../offlineQueue'
-import { db, storage } from '../firebase'
+import { auth, db, storage } from '../firebase'
 import type {
   GrowthBanana,
   GrowthBamboo,
   GrowthDbh,
   GrowthLog,
+  MapExperienceConfig,
   Plot,
+  PlotBasemap,
+  PlotBasemapBounds,
   PlotImage,
   Profile,
   Species,
@@ -49,6 +54,46 @@ function createOptimisticId() {
   return `local-${crypto.randomUUID()}`
 }
 
+const MAP_EXPERIENCE_CONFIG_ID = 'default'
+const MAX_BASEMAP_FILE_SIZE_BYTES = 200 * 1024 * 1024
+
+function normalizePlotIds(plotIds: string[]) {
+  return Array.from(new Set(plotIds.map((plotId) => plotId.trim()).filter(Boolean)))
+}
+
+async function assertCurrentUserIsAdmin() {
+  const currentUser = auth.currentUser
+
+  if (!currentUser) {
+    throw new Error('กรุณาเข้าสู่ระบบก่อนจัดการภาพ orthophoto')
+  }
+
+  const profileRef = doc(db, COLLECTION_NAMES.profiles, currentUser.uid)
+  const profileSnapshot = await getDoc(profileRef)
+
+  if (!profileSnapshot.exists()) {
+    throw new Error('ไม่พบข้อมูลผู้ใช้งาน')
+  }
+
+  const profile = {
+    id: profileSnapshot.id,
+    ...profileSnapshot.data(),
+  } as Profile
+
+  if (profile.role !== 'admin' || !profile.approved) {
+    throw new Error('เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไข orthophoto ได้')
+  }
+
+  return {
+    uid: currentUser.uid,
+  }
+}
+
+function buildBasemapStoragePath(plotId: string, fileName: string) {
+  const normalizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+  return `plot-basemaps/${plotId}/${Date.now()}-${normalizedFileName}`
+}
+
 export async function getPlots(): Promise<Plot[]> {
   const snapshot = await getDocs(collection(db, COLLECTION_NAMES.plots))
   return snapshot.docs.map((plotDoc) => toEntity<Plot>(plotDoc))
@@ -62,6 +107,51 @@ export async function getPlotByCode(plotCode: string): Promise<Plot | null> {
   )
   const snapshot = await getDocs(plotQuery)
   return snapshot.empty ? null : toEntity<Plot>(snapshot.docs[0])
+}
+
+export async function getMapExperienceConfig(
+  configId = MAP_EXPERIENCE_CONFIG_ID
+): Promise<MapExperienceConfig | null> {
+  const configSnapshot = await getDoc(doc(db, COLLECTION_NAMES.mapExperienceConfig, configId))
+
+  if (!configSnapshot.exists()) {
+    return null
+  }
+
+  return {
+    id: configSnapshot.id,
+    ...configSnapshot.data(),
+  } as MapExperienceConfig
+}
+
+type UpsertMapExperienceConfigInput = {
+  plotIds: string[]
+  note?: string
+  configId?: string
+}
+
+export async function upsertMapExperienceConfig(
+  input: UpsertMapExperienceConfigInput
+): Promise<MapExperienceConfig> {
+  const { uid } = await assertCurrentUserIsAdmin()
+  const configId = input.configId ?? MAP_EXPERIENCE_CONFIG_ID
+  const now = new Date().toISOString()
+
+  const payload: Omit<MapExperienceConfig, 'id'> = {
+    plot_ids: normalizePlotIds(input.plotIds),
+    note: input.note ?? '',
+    updated_by: uid,
+    updated_at: now,
+  }
+
+  await setDoc(doc(db, COLLECTION_NAMES.mapExperienceConfig, configId), payload, {
+    merge: true,
+  })
+
+  return {
+    id: configId,
+    ...payload,
+  }
 }
 
 export async function addPlot(payload: WithoutId<Plot>): Promise<Plot> {
@@ -361,7 +451,7 @@ export async function createGrowthEntry(input: CreateGrowthEntryInput): Promise<
   }
 }
 
-export async function getGrowthDbhByTreeId(treeId: string): Promise<GrowthDbh[]> {
+export async function getGrowthRcdByTreeId(treeId: string): Promise<GrowthDbh[]> {
   const logs = await getGrowthLogs(treeId)
   if (logs.length === 0) {
     return []
@@ -400,6 +490,107 @@ export async function deleteGrowthLog(growthLogId: string): Promise<void> {
     data: { id: growthLogId },
     write: () => deleteDoc(doc(db, COLLECTION_NAMES.growthLogs, growthLogId)),
   })
+}
+
+export async function getPlotBasemap(plotId: string): Promise<PlotBasemap | null> {
+  const basemapSnapshot = await getDoc(doc(db, COLLECTION_NAMES.plotBasemaps, plotId))
+
+  if (!basemapSnapshot.exists()) {
+    return null
+  }
+
+  return {
+    id: basemapSnapshot.id,
+    ...basemapSnapshot.data(),
+  } as PlotBasemap
+}
+
+type UploadPlotBasemapInput = {
+  plotId: string
+  file: File
+  bounds?: PlotBasemapBounds | null
+  rasterCrs?: string | null
+}
+
+function validateOrthophotoFile(file: File) {
+  const lowerName = file.name.toLowerCase()
+  if (!lowerName.endsWith('.tif') && !lowerName.endsWith('.tiff')) {
+    throw new Error('ไฟล์ orthophoto ต้องเป็น .tif หรือ .tiff')
+  }
+
+  if (file.size > MAX_BASEMAP_FILE_SIZE_BYTES) {
+    throw new Error('ไฟล์ orthophoto ต้องมีขนาดไม่เกิน 200 MB')
+  }
+}
+
+export async function uploadPlotBasemapTiff(input: UploadPlotBasemapInput): Promise<PlotBasemap> {
+  const { uid } = await assertCurrentUserIsAdmin()
+  validateOrthophotoFile(input.file)
+
+  const existingBasemap = await getPlotBasemap(input.plotId)
+  const storagePath = buildBasemapStoragePath(input.plotId, input.file.name)
+  const storageRef = ref(storage, storagePath)
+
+  await new Promise<void>((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, input.file, {
+      contentType: input.file.type || 'image/tiff',
+    })
+
+    uploadTask.on(
+      'state_changed',
+      () => undefined,
+      (error) => reject(error),
+      () => resolve()
+    )
+  })
+
+  const downloadUrl = await getDownloadURL(storageRef)
+  const now = new Date().toISOString()
+
+  const payload: Omit<PlotBasemap, 'id'> = {
+    plot_id: input.plotId,
+    storage_path: storagePath,
+    download_url: downloadUrl,
+    file_name: input.file.name,
+    file_size_bytes: input.file.size,
+    mime_type: input.file.type || 'image/tiff',
+    raster_crs: input.rasterCrs ?? null,
+    bounds: input.bounds ?? null,
+    uploaded_by: uid,
+    created_at: existingBasemap?.created_at ?? now,
+    updated_at: now,
+  }
+
+  await setDoc(doc(db, COLLECTION_NAMES.plotBasemaps, input.plotId), payload)
+
+  if (existingBasemap?.storage_path && existingBasemap.storage_path !== storagePath) {
+    try {
+      await deleteObject(ref(storage, existingBasemap.storage_path))
+    } catch (error) {
+      console.warn('Failed to delete previous orthophoto file:', error)
+    }
+  }
+
+  return {
+    id: input.plotId,
+    ...payload,
+  }
+}
+
+export async function deletePlotBasemap(plotId: string): Promise<void> {
+  await assertCurrentUserIsAdmin()
+
+  const existingBasemap = await getPlotBasemap(plotId)
+
+  if (existingBasemap?.storage_path) {
+    try {
+      await deleteObject(ref(storage, existingBasemap.storage_path))
+    } catch (error) {
+      console.warn('Failed to delete orthophoto file from storage:', error)
+    }
+  }
+
+  await deleteDoc(doc(db, COLLECTION_NAMES.plotBasemaps, plotId))
 }
 
 export async function getPlotImages(plotId: string): Promise<PlotImage[]> {

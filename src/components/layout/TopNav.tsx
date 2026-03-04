@@ -73,11 +73,12 @@ export default function TopNav({
         <button
           type="button"
           onClick={() => void logout()}
-          className="rounded-lg p-2 text-white/80 transition hover:bg-red-500/20 hover:text-red-200"
+          className="inline-flex items-center gap-2 rounded-lg p-2 text-white/80 transition hover:bg-red-500/20 hover:text-red-200"
           aria-label="ออกจากระบบ"
           title="ออกจากระบบ"
         >
           <LogOut className="h-5 w-5" />
+          <span className="hidden md:inline">ออกจากระบบ</span>
         </button>
       </div>
     </header>

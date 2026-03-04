@@ -108,8 +108,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <div>
         <label htmlFor="register-password" className="mb-1 block text-sm font-medium text-gray-700">
-          Password
+          รหัสผ่าน
         </label>
+        <p className="mb-1 text-xs text-gray-500">อย่างน้อย 6 ตัวอักษร</p>
         <input
           id="register-password"
           type="password"

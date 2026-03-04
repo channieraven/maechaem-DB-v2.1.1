@@ -1,0 +1,51 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function profileDocPath() {
+      return /databases/(default)/documents/profiles/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return isSignedIn() && firestore.exists(profileDocPath());
+    }
+
+    function profile() {
+      return firestore.get(profileDocPath()).data;
+    }
+
+    function isApproved() {
+      return hasProfile() && profile().approved == true;
+    }
+
+    function isAdmin() {
+      return isApproved() && profile().role == 'admin';
+    }
+
+    function canWrite() {
+      return isApproved()
+        && (
+          profile().role == 'staff'
+          || profile().role == 'researcher'
+          || profile().role == 'admin'
+        );
+    }
+
+    match /plot-basemaps/{allPaths=**} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    match /plots/{allPaths=**} {
+      allow read: if isApproved();
+      allow write: if canWrite();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,8 @@
 export const COLLECTION_NAMES = {
   profiles: 'profiles',
   plots: 'plots',
+  mapExperienceConfig: 'map_experience_config',
+  plotBasemaps: 'plot_basemaps',
   trees: 'trees',
   species: 'species',
   growthLogs: 'growth_logs',
@@ -9,7 +11,6 @@ export const COLLECTION_NAMES = {
   growthBanana: 'growth_banana',
   plotImages: 'plot_images',
   plotSpacing: 'plot_spacing',
-  importJobs: 'import_jobs',
   comments: 'comments',
   notifications: 'notifications',
 } as const;

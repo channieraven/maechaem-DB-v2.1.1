@@ -9,14 +9,17 @@ type PlotListProps = {
   maxItems?: number
 }
 
-export default function PlotList({ selectedPlotId = null, onSelectPlot, maxItems = 12 }: PlotListProps) {
+export default function PlotList({ selectedPlotId = null, onSelectPlot, maxItems }: PlotListProps) {
   const { plots, isLoading, error, refresh } = usePlots()
-  const visiblePlots = useMemo(() => plots.slice(0, maxItems), [plots, maxItems])
+  const visiblePlots = useMemo(() => {
+    const sorted = [...plots].sort((a, b) => a.plot_code.localeCompare(b.plot_code))
+    return maxItems ? sorted.slice(0, maxItems) : sorted
+  }, [plots, maxItems])
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-green-800">แปลงปลูก (12 แปลงแรก)</h2>
+        <h2 className="text-base font-semibold text-green-800">แปลงปลูก</h2>
         <button
           type="button"
           onClick={() => void refresh()}

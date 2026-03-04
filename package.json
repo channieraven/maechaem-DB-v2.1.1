@@ -10,7 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@genkit-ai/googleai": "^1.28.0",
+    "cors": "^2.8.6",
     "firebase": "^11.0.0",
+    "genkit": "^1.29.0",
+    "georaster": "^1.6.0",
+    "georaster-layer-for-leaflet": "^4.1.2",
+    "geotiff": "^3.0.4",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "papaparse": "^5.4.1",

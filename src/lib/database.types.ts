@@ -19,7 +19,6 @@ export type TreeStatus = 'alive' | 'dead' | 'missing';
 export type UserRole = 'pending' | 'staff' | 'researcher' | 'executive' | 'external' | 'admin';
 export type ImageType = 'plan_pre_1' | 'plan_pre_2' | 'plan_post_1' | 'gallery';
 export type GalleryCategory = 'tree' | 'soil' | 'atmosphere' | 'other';
-export type ImportJobStatus = 'queued' | 'dry_run_completed' | 'validated' | 'committed' | 'failed';
 
 // Collection interfaces
 export interface Profile {
@@ -48,6 +47,8 @@ export interface Plot {
   tree_count: number;
   alive_count: number;
   latest_survey_date: TimestampValue;
+  last_edited_by?: string;
+  last_edited_at?: TimestampValue;
 }
 
 export interface Tree {
@@ -131,6 +132,36 @@ export interface PlotImage {
   created_at: TimestampValue;
 }
 
+export interface PlotBasemapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface PlotBasemap {
+  id: string;
+  plot_id: string;
+  storage_path: string;
+  download_url: string;
+  file_name: string;
+  file_size_bytes: number;
+  mime_type: string;
+  raster_crs: string | null;
+  bounds: PlotBasemapBounds | null;
+  uploaded_by: string;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
+}
+
+export interface MapExperienceConfig {
+  id: string;
+  plot_ids: string[];
+  note: string;
+  updated_by: string;
+  updated_at: TimestampValue;
+}
+
 export interface PlotSpacing {
   id: string;
   plot_id: string;
@@ -156,36 +187,4 @@ export interface Notification {
   message: string;
   read: boolean;
   created_at: TimestampValue;
-}
-
-export interface ImportJobIssue {
-  code: string;
-  message: string;
-  severity: 'error' | 'warning';
-  row_index?: number;
-  field?: string;
-}
-
-export interface ImportJobSummary {
-  total_rows: number;
-  valid_rows: number;
-  invalid_rows: number;
-  plots_resolved: number;
-  trees_resolved: number;
-  species_resolved: number;
-}
-
-export interface ImportJob {
-  id: string;
-  source_file_name: string;
-  source_plot_code: string;
-  mode: 'dry_run' | 'commit';
-  parser_version: string;
-  status: ImportJobStatus;
-  summary: ImportJobSummary;
-  issues: ImportJobIssue[];
-  created_by: string;
-  created_at: TimestampValue;
-  updated_at: TimestampValue;
-  committed_at?: TimestampValue;
 }

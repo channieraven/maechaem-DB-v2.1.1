@@ -49,7 +49,7 @@ export default function PlotDetailPage() {
         </div>
       )}
 
-      {!isLoading && !error && plot && <PlotDetail plot={plot} />}
+      {!isLoading && !error && plot && <PlotDetail plot={plot} onUpdate={refresh} />}
     </section>
   )
 }

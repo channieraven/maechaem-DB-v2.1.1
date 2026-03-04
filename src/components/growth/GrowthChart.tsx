@@ -10,33 +10,33 @@ import {
   YAxis,
 } from 'recharts'
 import { useGrowthLogs } from '../../hooks/useGrowthLogs'
-import { getGrowthDbhByTreeId } from '../../lib/database/firestoreService'
+import { getGrowthRcdByTreeId } from '../../lib/database/firestoreService'
 import { formatDate } from '../../utils/formatters'
 
 type GrowthChartProps = {
   treeId: string
 }
 
-type DbhRow = {
+type RcdRow = {
   growth_log_id: string
   dbh_cm: number
 }
 
 export default function GrowthChart({ treeId }: GrowthChartProps) {
   const { growthLogs, isLoading, error } = useGrowthLogs(treeId)
-  const [dbhRows, setDbhRows] = useState<DbhRow[]>([])
+  const [rcdRows, setRcdRows] = useState<RcdRow[]>([])
 
   useEffect(() => {
     let ignore = false
 
-    const loadDbh = async () => {
-      const rows = await getGrowthDbhByTreeId(treeId)
+    const loadRcd = async () => {
+      const rows = await getGrowthRcdByTreeId(treeId)
       if (!ignore) {
-        setDbhRows(rows)
+        setRcdRows(rows)
       }
     }
 
-    void loadDbh()
+    void loadRcd()
 
     return () => {
       ignore = true
@@ -44,16 +44,16 @@ export default function GrowthChart({ treeId }: GrowthChartProps) {
   }, [treeId])
 
   const chartData = useMemo(() => {
-    const dbhByLogId = new Map(dbhRows.map((item) => [item.growth_log_id, item.dbh_cm]))
+    const rcdByLogId = new Map(rcdRows.map((item) => [item.growth_log_id, item.dbh_cm]))
 
     return [...growthLogs]
       .sort((a, b) => new Date(String(a.survey_date)).getTime() - new Date(String(b.survey_date)).getTime())
       .map((item) => ({
         date: formatDate(item.survey_date),
         height: item.height_m,
-        dbh: dbhByLogId.get(item.id) ?? null,
+        rcd: rcdByLogId.get(item.id) ?? null,
       }))
-  }, [dbhRows, growthLogs])
+  }, [rcdRows, growthLogs])
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4">
@@ -73,7 +73,7 @@ export default function GrowthChart({ treeId }: GrowthChartProps) {
               <Tooltip />
               <Legend />
               <Line type="monotone" dataKey="height" name="Height (m)" stroke="#15803D" strokeWidth={2} />
-              <Line type="monotone" dataKey="dbh" name="DBH (cm)" stroke="#2563EB" strokeWidth={2} />
+              <Line type="monotone" dataKey="rcd" name="RCD ความโตที่ระดับคอราก (cm)" stroke="#2563EB" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>

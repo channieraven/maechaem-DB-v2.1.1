@@ -33,6 +33,16 @@ service cloud.firestore {
     }
 
     // Read-only for approved users
+    match /map_experience_config/{doc} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    match /plot_basemaps/{doc} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
     match /plots/{doc} {
       allow read: if isApproved();
       allow write: if canWrite();

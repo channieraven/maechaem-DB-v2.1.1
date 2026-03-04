@@ -35,8 +35,8 @@ export default function PlotCard({ plot, isSelected = false, onSelect }: PlotCar
       ].join(' ')}
     >
       <div className="mb-3">
-        <h3 className="text-base font-semibold text-green-900">{plot.name_short || '-'}</h3>
-        <p className="text-xs text-gray-500">รหัสแปลง: {plot.plot_code}</p>
+        <h3 className="text-base font-semibold text-green-900">{plot.plot_code}</h3>
+        <p className="text-xs text-gray-500">{plot.name_short || '-'}</p>
       </div>
 
       <dl className="grid grid-cols-2 gap-2 text-sm">

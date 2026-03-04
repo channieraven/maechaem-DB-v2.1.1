@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import type { PlantCategory, Tree, TreeStatus } from '../../lib/database.types'
@@ -6,7 +6,7 @@ import { createGrowthEntry } from '../../lib/database/firestoreService'
 import BananaFields from './GrowthFormFields/BananaFields'
 import BambooFields from './GrowthFormFields/BambooFields'
 import CommonFields from './GrowthFormFields/CommonFields'
-import DbhFields from './GrowthFormFields/DbhFields'
+import RcdFields from './GrowthFormFields/RcdFields'
 
 type GrowthFormProps = {
   tree: Tree
@@ -32,12 +32,12 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
     flowering: false,
     note: '',
   })
-  const [dbhCm, setDbhCm] = useState(0)
+  const [rcdCm, setRcdCm] = useState(0)
   const [bamboo, setBamboo] = useState({
     culmCount: 0,
-    dbh1Cm: 0,
-    dbh2Cm: 0,
-    dbh3Cm: 0,
+    rcd1Cm: 0,
+    rcd2Cm: 0,
+    rcd3Cm: 0,
   })
   const [banana, setBanana] = useState({
     totalPlants: 0,
@@ -48,12 +48,27 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const speciesById = useMemo(() => new Map(species.map((item) => [item.id, item])), [species])
   const treeSpecies = speciesById.get(tree.species_id)
   const plantCategory: PlantCategory = treeSpecies?.plant_category ?? 'forest'
 
   const canSubmit = Boolean(user?.uid && !isSubmitting)
+
+  useEffect(() => {
+    if (!showSuccessToast) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setShowSuccessToast(false)
+    }, 3000)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [showSuccessToast])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -70,9 +85,9 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
           ? {
               plantCategory,
               culm_count: bamboo.culmCount,
-              dbh_1_cm: bamboo.dbh1Cm,
-              dbh_2_cm: bamboo.dbh2Cm,
-              dbh_3_cm: bamboo.dbh3Cm,
+              dbh_1_cm: bamboo.rcd1Cm,
+              dbh_2_cm: bamboo.rcd2Cm,
+              dbh_3_cm: bamboo.rcd3Cm,
             }
           : plantCategory === 'banana'
             ? {
@@ -85,7 +100,7 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
               }
             : {
                 plantCategory,
-                dbh_cm: dbhCm,
+                dbh_cm: rcdCm,
               }
 
       await createGrowthEntry({
@@ -104,9 +119,10 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
       })
 
       setCommon((prev) => ({ ...prev, heightM: 0, flowering: false, note: '' }))
-      setDbhCm(0)
-      setBamboo({ culmCount: 0, dbh1Cm: 0, dbh2Cm: 0, dbh3Cm: 0 })
+      setRcdCm(0)
+      setBamboo({ culmCount: 0, rcd1Cm: 0, rcd2Cm: 0, rcd3Cm: 0 })
       setBanana({ totalPlants: 0, plants1yr: 0, yieldBunches: 0, yieldHands: 0, pricePerHand: 0 })
+      setShowSuccessToast(true)
 
       await onSaved?.()
     } catch (error) {
@@ -133,7 +149,7 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
         />
 
         {(plantCategory === 'forest' || plantCategory === 'rubber' || plantCategory === 'fruit') && (
-          <DbhFields dbhCm={dbhCm} onChange={setDbhCm} />
+          <RcdFields rcdCm={rcdCm} onChange={setRcdCm} />
         )}
 
         {plantCategory === 'bamboo' && (
@@ -170,6 +186,12 @@ export default function GrowthForm({ tree, onSaved }: GrowthFormProps) {
           {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกผลสำรวจ'}
         </button>
       </form>
+
+      {showSuccessToast && (
+        <div className="pointer-events-none fixed right-4 top-20 z-50 rounded-lg border border-green-200 bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          ✓ บันทึกข้อมูลเรียบร้อยแล้ว
+        </div>
+      )}
     </section>
   )
 }
