@@ -28,7 +28,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/plots" replace />} />
+        <Route path="/" element={<Navigate to="/building-plan" replace />} />
         <Route path="/plots" element={<PlotsPage />} />
         <Route path="/plots/:plotCode" element={<PlotDetailPage />} />
         <Route path="/trees/:treeCode" element={<TreeDetailPage />} />
@@ -41,7 +41,7 @@ export default function App() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/plots" replace />} />
+      <Route path="*" element={<Navigate to="/building-plan" replace />} />
     </Routes>
   )
 }
