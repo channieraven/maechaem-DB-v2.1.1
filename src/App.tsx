@@ -3,6 +3,7 @@ import AdminRoute from './components/auth/AdminRoute'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import AppShell from './components/layout/AppShell'
 import AdminPage from './pages/AdminPage'
+import BuildingPlanPage from './pages/BuildingPlanPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import PendingApprovalPage from './pages/PendingApprovalPage'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/trees/:treeCode" element={<TreeDetailPage />} />
         <Route path="/survey" element={<SurveyPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/building-plan" element={<BuildingPlanPage />} />
 
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminPage />} />

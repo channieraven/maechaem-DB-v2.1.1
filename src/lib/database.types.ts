@@ -20,6 +20,7 @@ export type UserRole = 'pending' | 'staff' | 'researcher' | 'executive' | 'exter
 export type ImageType = 'plan_pre_1' | 'plan_pre_2' | 'plan_post_1' | 'gallery';
 export type GalleryCategory = 'tree' | 'soil' | 'atmosphere' | 'other';
 export type ImportJobStatus = 'queued' | 'dry_run_completed' | 'validated' | 'committed' | 'failed';
+export type MapLayerType = 'plot_boundary' | 'tree_position' | 'contour' | 'infrastructure';
 
 // Collection interfaces
 export interface Profile {
@@ -188,4 +189,25 @@ export interface ImportJob {
   created_at: TimestampValue;
   updated_at: TimestampValue;
   committed_at?: TimestampValue;
+}
+
+export interface MapLayerStyle {
+  color: string;
+  weight: number;
+  opacity: number;
+  fillColor?: string;
+  fillOpacity?: number;
+}
+
+export interface MapLayer {
+  id: string;
+  name: string;
+  layer_type: MapLayerType;
+  plot_id?: string;
+  geojson_url: string;
+  storage_path: string;
+  style: MapLayerStyle;
+  visible_by_default: boolean;
+  uploaded_by: string;
+  created_at: TimestampValue;
 }

@@ -88,6 +88,11 @@ service cloud.firestore {
       allow write: if canWrite();
     }
 
+    match /map_layers/{doc} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
     match /notifications/{doc} {
       allow read: if isSignedIn()
                   && (resource.data.userId == request.auth.uid

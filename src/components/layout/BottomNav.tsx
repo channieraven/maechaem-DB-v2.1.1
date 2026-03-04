@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BarChart3, Ellipsis, House, Search } from 'lucide-react'
+import { BarChart3, Ellipsis, House, Map, Search } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 export type BottomNavItem = {
@@ -33,6 +33,12 @@ const defaultItems: BottomNavItem[] = [
     icon: <BarChart3 className="h-4 w-4" />,
   },
   {
+    id: 'building-plan',
+    label: 'แผนผัง',
+    to: '/building-plan',
+    icon: <Map className="h-4 w-4" />,
+  },
+  {
     id: 'more',
     label: 'เพิ่มเติม',
     to: '/admin',
@@ -43,7 +49,7 @@ const defaultItems: BottomNavItem[] = [
 export default function BottomNav({ items = defaultItems }: BottomNavProps) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-green-800/20 bg-green-900 md:hidden" aria-label="เมนูด้านล่าง">
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {items.map((item) => (
           <li key={item.id}>
             <NavLink
