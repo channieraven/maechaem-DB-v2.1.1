@@ -25,6 +25,8 @@ import type {
   GrowthBamboo,
   GrowthDbh,
   GrowthLog,
+  MapLayer,
+  MapLayerType,
   Plot,
   PlotImage,
   Profile,
@@ -497,4 +499,82 @@ export async function updateProfileRole(
         approved,
       }),
   })
+}
+
+// ── Map Layers ──────────────────────────────────────────────────────────
+
+export async function getMapLayers(): Promise<MapLayer[]> {
+  const snapshot = await getDocs(collection(db, COLLECTION_NAMES.mapLayers))
+  return snapshot.docs.map((layerDoc) => toEntity<MapLayer>(layerDoc))
+}
+
+export async function getMapLayersByPlot(plotId: string): Promise<MapLayer[]> {
+  const layerQuery = query(
+    collection(db, COLLECTION_NAMES.mapLayers),
+    where('plot_id', '==', plotId)
+  )
+  const snapshot = await getDocs(layerQuery)
+  return snapshot.docs.map((layerDoc) => toEntity<MapLayer>(layerDoc))
+}
+
+type UploadMapLayerInput = {
+  name: string
+  layerType: MapLayerType
+  plotId?: string
+  file: Blob | Uint8Array | ArrayBuffer
+  style: MapLayer['style']
+  visibleByDefault: boolean
+  uploadedBy: string
+}
+
+function buildLayerStoragePath(layerType: MapLayerType) {
+  return `map_layers/${layerType}-${Date.now()}.geojson`
+}
+
+export async function uploadMapLayer(input: UploadMapLayerInput): Promise<MapLayer> {
+  const storagePath = buildLayerStoragePath(input.layerType)
+  const storageRef = ref(storage, storagePath)
+
+  await uploadBytes(storageRef, input.file)
+  const downloadUrl = await getDownloadURL(storageRef)
+
+  const payload: WithoutId<MapLayer> = {
+    name: input.name,
+    layer_type: input.layerType,
+    ...(input.plotId ? { plot_id: input.plotId } : {}),
+    geojson_url: downloadUrl,
+    storage_path: storagePath,
+    style: input.style,
+    visible_by_default: input.visibleByDefault,
+    uploaded_by: input.uploadedBy,
+    created_at: new Date().toISOString(),
+  }
+
+  const documentRef = await addDoc(
+    collection(db, COLLECTION_NAMES.mapLayers),
+    payload as WithFieldValue<WithoutId<MapLayer>>
+  )
+
+  return {
+    id: documentRef.id,
+    ...payload,
+  }
+}
+
+export async function deleteMapLayer(layerId: string): Promise<void> {
+  const layerRef = doc(db, COLLECTION_NAMES.mapLayers, layerId)
+  const layerSnapshot = await getDoc(layerRef)
+
+  if (layerSnapshot.exists()) {
+    const layer = {
+      id: layerSnapshot.id,
+      ...layerSnapshot.data(),
+    } as MapLayer
+
+    if (layer.storage_path) {
+      await deleteObject(ref(storage, layer.storage_path))
+    }
+  }
+
+  await deleteDoc(layerRef)
 }

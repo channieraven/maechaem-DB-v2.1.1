@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BarChart3, Search, Shield, SquareKanban } from 'lucide-react'
+import { BarChart3, Map, Search, Shield, SquareKanban } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import BottomNav from './BottomNav'
 import OfflineIndicator from './OfflineIndicator'
@@ -60,6 +60,19 @@ function DefaultSidebar() {
         >
           <BarChart3 className="h-4 w-4" />
           แดชบอร์ด
+        </NavLink>
+
+        <NavLink
+          to="/building-plan"
+          className={({ isActive }) =>
+            [
+              'mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
+              isActive ? 'bg-green-700 text-white' : 'text-green-900 hover:bg-green-100',
+            ].join(' ')
+          }
+        >
+          <Map className="h-4 w-4" />
+          แผนผังการปลูก
         </NavLink>
 
         <NavLink
