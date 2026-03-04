@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet'
 import type { FeatureCollection } from 'geojson'
+import { getBytes, ref } from 'firebase/storage'
 import L from 'leaflet'
 import type { Layer, PathOptions } from 'leaflet'
 import type { MapLayer } from '../../lib/database.types'
 import { useMapLayers } from '../../hooks/useMapLayers'
+import { storage } from '../../lib/firebase'
 import { LAYER_TYPE_LABELS } from '../../utils/constants'
 
 type GeoJsonCache = Record<string, FeatureCollection>
@@ -82,9 +84,10 @@ export default function BuildingPlanMap() {
       if (geojsonCache[layer.id]) return
 
       try {
-        const response = await fetch(layer.geojson_url)
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const data = (await response.json()) as FeatureCollection
+        const storageRef = ref(storage, layer.storage_path)
+        const bytes = await getBytes(storageRef)
+        const text = new TextDecoder().decode(bytes)
+        const data = JSON.parse(text) as FeatureCollection
         setGeojsonCache((prev) => ({ ...prev, [layer.id]: data }))
       } catch (err) {
         const message = err instanceof Error ? err.message : 'ไม่สามารถโหลดชั้นข้อมูลได้'
@@ -152,13 +155,13 @@ export default function BuildingPlanMap() {
           <div className="h-[28rem] overflow-hidden rounded-lg border border-gray-200 md:h-[36rem]">
             <MapContainer center={mapCenter} zoom={15} className="h-full w-full" scrollWheelZoom>
               <LayersControl position="topright">
-                <LayersControl.BaseLayer checked name="OpenStreetMap">
+                <LayersControl.BaseLayer name="OpenStreetMap">
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                 </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="ภาพดาวเทียม">
+                <LayersControl.BaseLayer checked name="ภาพดาวเทียม">
                   <TileLayer
                     attribution='&copy; Esri'
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
